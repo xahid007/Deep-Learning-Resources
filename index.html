@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -296,4 +297,862 @@ function renderMatrix(mat, label, opts={}){
   return h;
 }
 function renderPartialMatrix(partial,label,curR,curC,fullMat,colorMode='negpos'){
-  const flat=fullMat.flat(),mn=Math.min(...flat
+  const flat=fullMat.flat(),mn=Math.min(...flat),mx=Math.max(...flat);
+  const cols=partial[0].length;
+  let h=`<div><div class="matrix-label">${label}</div><div class="grid-matrix" style="grid-template-columns:repeat(${cols},34px);gap:2px">`;
+  partial.forEach((row,ri)=>row.forEach((val,ci)=>{
+    if(val===null){ h+=`<div class="cell" style="background:var(--bg2);color:var(--text3)">?</div>`; }
+    else {
+      const colorFn=colorMode==='negpos'?negPosColor:(v=>heatColor(v,mn,mx));
+      const {bg,fg}=colorFn(val);
+      const d=Number.isInteger(val)?val:val.toFixed(1);
+      const isCur=ri===curR&&ci===curC;
+      h+=`<div class="cell${isCur?' result-hl animate-in':''}" style="background:${bg};color:${fg}">${d}</div>`;
+    }
+  }));
+  h+=`</div></div>`;
+  return h;
+}
+function renderVector(arr,label){
+  const mn=Math.min(...arr),mx=Math.max(...arr);
+  let h=`<div><div class="matrix-label">${label}</div><div style="display:flex;gap:2px;flex-wrap:wrap">`;
+  arr.forEach(v=>{
+    const {bg,fg}=heatColor(v,mn,mx);
+    const d=Number.isInteger(v)?v:v.toFixed(2);
+    h+=`<div class="cell" style="background:${bg};color:${fg};width:46px;height:34px;font-size:11px">${d}</div>`;
+  });
+  h+=`</div></div>`;
+  return h;
+}
+
+/* ─────────────────────────────────────────────
+   LIVE KERNEL LAB (conv step)
+───────────────────────────────────────────── */
+function buildKernelLabHTML(){
+  const kernelCells = KERNEL.map((row,ri)=>row.map((val,ci)=>
+    `<div class="cell editable" style="width:38px;height:38px;"><input id="kc-${ri}-${ci}" type="number" step="1" value="${val}" oninput="onKernelEdit()"/></div>`
+  ));
+  const kernelGrid = `<div class="grid-matrix" style="grid-template-columns:repeat(3,38px);gap:2px">${kernelCells.flat().join('')}</div>`;
+
+  const presetBtns = Object.entries(PRESETS).map(([k,p])=>
+    `<button class="preset-btn${k===activePreset?' active':''}" onclick="applyPreset('${k}')">${p.label}</button>`
+  ).join('');
+
+  // param controls
+  return `
+    <div class="kernel-lab">
+      <div class="kernel-lab-title">Live kernel editor — edit values or pick a preset</div>
+      <div class="preset-row">${presetBtns}</div>
+      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <div class="matrix-label">Kernel (edit freely)</div>
+          ${kernelGrid}
+          <div style="margin-top:6px;font-size:11px;color:var(--text3);">Sum = <span id="k-sum">0</span> &nbsp;|&nbsp; <span id="k-type-hint"></span></div>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div class="param-row">
+            <div class="param-group"><span class="param-label">Kernel size</span>
+              <select id="k-size" onchange="onParamChange()"><option value="3" selected>3×3</option><option value="5">5×5</option></select>
+            </div>
+            <div class="param-group"><span class="param-label">Stride</span>
+              <select id="k-stride" onchange="onParamChange()"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select>
+            </div>
+            <div class="param-group"><span class="param-label">Padding</span>
+              <select id="k-pad" onchange="onParamChange()"><option value="0" selected>Valid (0)</option><option value="same">Same</option><option value="1">P=1</option></select>
+            </div>
+          </div>
+          <div class="formula-live" id="live-formula">
+            <span>Output size = (n−f+2p)/s+1</span>
+          </div>
+          <div id="live-feature-wrap"></div>
+        </div>
+      </div>
+      <div id="k-preset-desc" class="takeaway" style="margin-top:10px;"></div>
+    </div>`;
+}
+
+function readKernelFromDOM(){
+  const k=[];
+  for(let r=0;r<3;r++){ k.push([]);
+    for(let c=0;c<3;c++) k[r].push(parseFloat(document.getElementById(`kc-${r}-${c}`)?.value)||0);
+  }
+  return k;
+}
+
+function onKernelEdit(){
+  KERNEL = readKernelFromDOM();
+  activePreset = '';
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  updateLiveOutput();
+}
+
+function applyPreset(name){
+  activePreset = name;
+  const p = PRESETS[name];
+  KERNEL = p.k.map(r=>[...r]);
+  // update inputs
+  KERNEL.forEach((row,ri)=>row.forEach((val,ci)=>{
+    const inp = document.getElementById(`kc-${ri}-${ci}`);
+    if(inp) inp.value = val;
+  }));
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.preset-btn').forEach(b=>{ if(b.textContent===p.label) b.classList.add('active'); });
+  const desc = document.getElementById('k-preset-desc');
+  if(desc) desc.textContent = p.desc;
+  updateLiveOutput();
+}
+
+function onParamChange(){ updateLiveOutput(); }
+
+function updateLiveOutput(){
+  const n=6, f=3;
+  const stride = parseInt(document.getElementById('k-stride')?.value||1);
+  const padRaw = document.getElementById('k-pad')?.value||'0';
+  const p = padRaw==='same'?Math.floor(f/2):parseInt(padRaw)||0;
+  const outS = Math.floor((n-f+2*p)/stride)+1;
+
+  // formula bar
+  const fb = document.getElementById('live-formula');
+  if(fb) fb.innerHTML = `<span style="color:var(--text2)">Output = (${n}−${f}+2×${p})/${stride}+1 =</span> <span class="fval">${outS}×${outS}</span>`;
+
+  // kernel sum hint
+  const sum = KERNEL.flat().reduce((a,b)=>a+b,0);
+  const sumEl = document.getElementById('k-sum');
+  if(sumEl) sumEl.textContent = Math.round(sum*100)/100;
+  const hint = document.getElementById('k-type-hint');
+  if(hint){
+    if(Math.abs(sum)<0.01) hint.textContent='edge/difference filter (zero-sum)';
+    else if(sum>0) hint.textContent='smoothing/brightening filter';
+    else hint.textContent='darkening filter';
+  }
+
+  // compute live feature map
+  const {out} = convolve(INPUT, KERNEL, stride, padRaw==='same'?'same':p);
+  const activated = reluMat(out);
+  const wrap = document.getElementById('live-feature-wrap');
+  if(wrap){
+    wrap.innerHTML = `
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-top:10px;flex-wrap:wrap;">
+        ${renderMatrix(out,`Conv output ${outS}×${outS}`,{colorMode:'negpos',animate:true})}
+        <div class="op-sym" style="align-self:center">→</div>
+        ${renderMatrix(activated,`After ReLU ${outS}×${outS}`,{animate:true})}
+      </div>`;
+    addInterpretation(wrap, activated);
+  }
+}
+
+function addInterpretation(parent, mat){
+  const flat=mat.flat();
+  const max=Math.max(...flat), zeros=flat.filter(v=>v===0).length, total=flat.length;
+  const pct=Math.round(zeros/total*100);
+  const maxVal=Math.max(...flat);
+  let cls='zero', msg='';
+  if(maxVal===0){ cls='zero'; msg='All activations are zero after ReLU. This kernel produces no positive response on this input — change the kernel or input.'; }
+  else if(pct>70){ cls='neg'; msg=`<strong>${pct}% of activations zeroed</strong> by ReLU. Highly sparse — only the strongest ${100-pct}% of responses survive. This kernel detects a very specific pattern rarely present in this input.`; }
+  else if(pct<20){ cls='pos'; msg=`<strong>Only ${pct}% zeroed</strong> — most activations survive ReLU. This kernel responds broadly to this input (e.g. blur or sharpen on structured data).`; }
+  else { cls='pos'; msg=`<strong>${pct}% zeroed</strong> by ReLU. Typical sparsity for a selective edge kernel. Strong positive values (up to ${maxVal}) indicate the kernel's pattern is present.`; }
+  const d=document.createElement('div');
+  d.className=`interp-box ${cls}`;
+  d.innerHTML=msg;
+  parent.appendChild(d);
+}
+
+/* ─────────────────────────────────────────────
+   CONV ANIMATION (original step)
+───────────────────────────────────────────── */
+let convPos=0, convTimer=null;
+const CONV_POS=[];
+for(let i=0;i<=INPUT.length-3;i++) for(let j=0;j<=INPUT[0].length-3;j++) CONV_POS.push([i,j]);
+
+function buildPartialConv(upTo){
+  const p=CONV_ORIG.map(r=>r.map(()=>null));
+  for(let k=0;k<=upTo&&k<CONV_POS.length;k++){const[r,c]=CONV_POS[k];p[r][c]=CONV_ORIG[r][c];}
+  return p;
+}
+
+function renderConvStep(){
+  const [r,c]=CONV_POS[convPos];
+  const hlCells=[];
+  for(let ki=0;ki<3;ki++) for(let kj=0;kj<3;kj++) hlCells.push([r+ki,c+kj]);
+  const partial=buildPartialConv(convPos);
+  const val=CONV_ORIG[r][c];
+  let terms=[],sum=0;
+  for(let ki=0;ki<3;ki++) for(let kj=0;kj<3;kj++){
+    const pv=INPUT[r+ki][c+kj],kv=KERNEL[ki][kj];
+    terms.push({pv,kv,prod:pv*kv}); sum+=pv*kv;
+  }
+  let calc=`<span class="muted">Step ${convPos+1}/${CONV_POS.length} — position (${r}, ${c})</span>\n\noutput[${r}][${c}] =\n`;
+  for(let ki=0;ki<3;ki++){
+    const ts=terms.slice(ki*3,(ki+1)*3).map(({pv,kv})=>`(${pv}×${kv})`);
+    calc+=`  ${ts.join(' + ')}`;
+    if(ki<2) calc+=` +\n`;
+  }
+  const cls=sum>=0?'pos-val':'neg-val';
+  calc+=`\n  = <span class="${cls}">${sum}</span>`;
+  if(sum<0) calc+=`\n\n<span class="neg-val">negative → ReLU will zero this</span>`;
+  else if(sum===0) calc+=`\n\n<span class="muted">zero → ReLU keeps as 0</span>`;
+  else calc+=`\n\n<span class="pos-val">positive → ReLU keeps this</span>`;
+
+  document.getElementById('ci-input').innerHTML=renderMatrix(INPUT,'Input (6×6)',{hlCells,colorMode:'negpos'});
+  document.getElementById('ci-kernel').innerHTML=renderMatrix(KERNEL,'Kernel (3×3)',{colorMode:'negpos'});
+  document.getElementById('ci-feat').innerHTML=renderPartialMatrix(partial,'Feature map (4×4)',r,c,CONV_ORIG,'negpos');
+  document.getElementById('ci-calc').innerHTML=calc;
+  document.getElementById('ci-pos').textContent=`Kernel at row=${r}, col=${c}`;
+  document.getElementById('conv-prev').disabled=convPos===0;
+  document.getElementById('conv-next').disabled=convPos===CONV_POS.length-1;
+}
+function convStep(d){stopConvAuto();convPos=Math.max(0,Math.min(CONV_POS.length-1,convPos+d));renderConvStep();}
+function convReset(){stopConvAuto();convPos=0;renderConvStep();}
+function toggleConvAuto(){if(convTimer)stopConvAuto();else startConvAuto();}
+function startConvAuto(){
+  if(convTimer)return;
+  const b=document.getElementById('conv-auto');
+  b.textContent='Pause';b.classList.add('primary');
+  convTimer=setInterval(()=>{if(convPos>=CONV_POS.length-1){stopConvAuto();return;}convPos++;renderConvStep();},600);
+}
+function stopConvAuto(){
+  if(convTimer){clearInterval(convTimer);convTimer=null;}
+  const b=document.getElementById('conv-auto');
+  if(b){b.textContent='Auto play';b.classList.remove('primary');}
+}
+
+/* ─────────────────────────────────────────────
+   POOL ANIMATION
+───────────────────────────────────────────── */
+let poolPos=0, poolTimer=null;
+const POOL_POS=[[0,0],[0,2],[2,0],[2,2]];
+function buildPartialPool(upTo){
+  const p=[[null,null],[null,null]];
+  for(let k=0;k<=upTo&&k<POOL_POS.length;k++){const[r,c]=POOL_POS[k];p[r/2][c/2]=POOL_ORIG[r/2][c/2];}
+  return p;
+}
+function findMaxCell(r,c){
+  let br=r,bc=c,bv=-Infinity;
+  for(let ki=0;ki<2;ki++) for(let kj=0;kj<2;kj++){const v=RELU_ORIG[r+ki][c+kj];if(v>bv){bv=v;br=r+ki;bc=c+kj;}}
+  return [br,bc,bv];
+}
+function renderPoolStep(){
+  const [r,c]=POOL_POS[poolPos];
+  const winCells=[],vals=[];
+  for(let ki=0;ki<2;ki++) for(let kj=0;kj<2;kj++){winCells.push([r+ki,c+kj]);vals.push(RELU_ORIG[r+ki][c+kj]);}
+  const [mr,mc,mv]=findMaxCell(r,c);
+  const partial=buildPartialPool(poolPos);
+  const pr=r/2,pc=c/2;
+  let info=`<span class="muted">Window ${poolPos+1}/4 → pool[${pr}][${pc}]</span>\n\n`;
+  info+=`2×2 window at rows ${r}:${r+2}, cols ${c}:${c+2}:\n`;
+  info+=`  [ ${RELU_ORIG[r][c]}, ${RELU_ORIG[r][c+1]} ]\n`;
+  info+=`  [ ${RELU_ORIG[r+1][c]}, ${RELU_ORIG[r+1][c+1]} ]\n\n`;
+  info+=`max(${vals.join(', ')}) = <span class="pos-val">${mv}</span>\n`;
+  info+=`winner: relu_out[${mr}][${mc}]\ndiscarded: ${vals.filter(v=>v!==mv).join(', ')} (${vals.filter(v=>v!==mv).length} values lost)`;
+  document.getElementById('pi-relu').innerHTML=renderMatrix(RELU_ORIG,'After ReLU (4×4)',{winCells,maxCells:[[mr,mc]]});
+  document.getElementById('pi-pool').innerHTML=renderPartialMatrix(partial,'Pool output (2×2)',pr,pc,POOL_ORIG,'heat');
+  document.getElementById('pi-info').innerHTML=info;
+  document.getElementById('pool-pos').textContent=`Window at row=${r}, col=${c}`;
+  document.getElementById('pool-prev').disabled=poolPos===0;
+  document.getElementById('pool-next').disabled=poolPos===POOL_POS.length-1;
+}
+function poolStep(d){stopPoolAuto();poolPos=Math.max(0,Math.min(POOL_POS.length-1,poolPos+d));renderPoolStep();}
+function poolReset(){stopPoolAuto();poolPos=0;renderPoolStep();}
+function togglePoolAuto(){if(poolTimer)stopPoolAuto();else startPoolAuto();}
+function startPoolAuto(){
+  if(poolTimer)return;
+  const b=document.getElementById('pool-auto');
+  b.textContent='Pause';b.classList.add('primary');
+  poolTimer=setInterval(()=>{if(poolPos>=POOL_POS.length-1){stopPoolAuto();return;}poolPos++;renderPoolStep();},1000);
+}
+function stopPoolAuto(){
+  if(poolTimer){clearInterval(poolTimer);poolTimer=null;}
+  const b=document.getElementById('pool-auto');
+  if(b){b.textContent='Auto play';b.classList.remove('primary');}
+}
+
+/* ─────────────────────────────────────────────
+   MULTI-FILTER PAGE
+───────────────────────────────────────────── */
+function renderMultiFilter(){
+  const cards = MULTI_FILTERS.map((f,fi)=>{
+    const {out}=convolve(INPUT,f.k,1,0);
+    const act=reluMat(out);
+    const kernelHTML = `<div class="grid-matrix" style="grid-template-columns:repeat(3,26px);gap:2px">${f.k.flat().map(v=>{const{bg,fg}=negPosColor(v);return`<div class="cell" style="width:26px;height:26px;background:${bg};color:${fg};font-size:9px">${v}</div>`}).join('')}</div>`;
+    return `
+      <div class="filter-card">
+        <div class="filter-name" style="color:${f.color}">Filter ${fi+1} — ${f.name}</div>
+        ${kernelHTML}
+        <div style="margin:8px 0;font-size:10px;color:var(--text3)">→ feature map</div>
+        ${renderMatrix(act,`Output (4×4)`,{animate:true})}
+      </div>`;
+  }).join('');
+
+  const tensorNote = `<div class="math-box">Input:  6×6×1 (single channel)\n\nEach filter runs independently:\n  Filter 1 → 4×4 map (vertical edges)\n  Filter 2 → 4×4 map (horizontal edges)\n  Filter 3 → 4×4 map (all edges — Laplacian)\n  Filter 4 → 4×4 map (sharpened detail)\n\nStack all 4 maps along depth axis:\n  Output tensor = 4×4×4  (height × width × channels)\n\nThe NEXT layer sees all 4 channels simultaneously\nand learns which combinations matter for the task.\n\nIn AlexNet (1st layer): 11×11 filters × 96 filters\n  → 55×55×96 feature tensor\n  → 290,400 feature maps after one conv pass</div>`;
+
+  return `
+    <div class="panel">
+      <div class="panel-title">Multi-filter: 4 kernels applied in parallel</div>
+      <div class="panel-sub">A real CNN doesn't apply one kernel — it applies dozens or hundreds simultaneously. Each builds a different feature map. Together they form a 3D tensor passed to the next layer.</div>
+      <div><span class="dim-badge">6×6×1</span><span style="font-size:18px;color:var(--text3);margin:0 8px">→</span><span class="dim-badge green">4×4×4</span><span class="tag">4 filters</span><span class="tag">0 extra params per filter</span></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text2);margin-bottom:12px">Input matrix (same for all filters):</div>
+      ${renderMatrix(INPUT,'Input (6×6)',{colorMode:'negpos'})}
+      <div style="margin:14px 0 8px;font-size:12px;color:var(--text2)">Each filter → its own feature map:</div>
+      <div class="filter-grid">${cards}</div>
+      ${tensorNote}
+      <div class="takeaway">Key: The network learns WHICH filters are useful by adjusting their weights during backprop. Filters that capture task-relevant patterns get amplified by subsequent FC layers; irrelevant filters get suppressed. This is what "learning features" means in a CNN.</div>
+    </div>`;
+}
+
+/* ─────────────────────────────────────────────
+   IMAGE UPLOAD
+───────────────────────────────────────────── */
+let uploadMatrix = null;
+function renderUploadStep(){
+  return `
+    <div class="panel">
+      <div class="panel-title">Upload your own image</div>
+      <div class="panel-sub">Drop a PNG or JPG. It will be converted to an 8×8 greyscale pixel matrix, then you can apply any kernel to real pixel values.</div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('img-file').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleImgDrop(event)">
+        <div style="font-size:28px">+</div>
+        <p>Click or drag a PNG / JPG here</p>
+        <p style="font-size:11px;color:var(--text3)">Resized to 8×8 greyscale automatically</p>
+      </div>
+      <input type="file" id="img-file" accept="image/*" style="display:none" onchange="loadImgFile(event)">
+      <canvas id="img-canvas" style="display:none"></canvas>
+      <img id="img-preview" style="max-width:120px;border-radius:6px;border:0.5px solid var(--border);display:none;margin-top:10px" alt="preview">
+      <div id="upload-result"></div>
+    </div>`;
+}
+
+function handleImgDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('dragover');
+  const f=e.dataTransfer.files[0];
+  if(f) processImgFile(f);
+}
+function loadImgFile(e){ const f=e.target.files[0]; if(f) processImgFile(f); }
+function processImgFile(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const preview=document.getElementById('img-preview');
+    preview.src=ev.target.result;
+    preview.style.display='block';
+    preview.onload=()=>{
+      const canvas=document.getElementById('img-canvas');
+      canvas.width=8; canvas.height=8;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(preview,0,0,8,8);
+      const d=ctx.getImageData(0,0,8,8).data;
+      uploadMatrix=[];
+      for(let r=0;r<8;r++){ uploadMatrix.push([]);
+        for(let c=0;c<8;c++){
+          const i=(r*8+c)*4;
+          uploadMatrix[r].push(Math.round(d[i]*.299+d[i+1]*.587+d[i+2]*.114));
+        }
+      }
+      showUploadResult('vedge');
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function showUploadResult(presetName){
+  if(!uploadMatrix){ document.getElementById('upload-result').innerHTML='<p style="color:var(--text2);font-size:12px;margin-top:10px">Upload an image first.</p>'; return; }
+  const k=PRESETS[presetName].k;
+  const {out}=convolve(uploadMatrix,k,1,0);
+  const act=reluMat(out);
+  const max=Math.max(...act.flat()), zeros=act.flat().filter(v=>v===0).length;
+
+  const btnRow = Object.entries(PRESETS).map(([pname,p])=>
+    `<button class="ctrl-btn${pname===presetName?' success':''}" onclick="showUploadResult('${pname}')" style="font-size:11px">${p.label}</button>`
+  ).join('');
+
+  document.getElementById('upload-result').innerHTML=`
+    <div class="ctrl-row" style="margin-top:14px;flex-wrap:wrap">${btnRow}</div>
+    <div class="grid-wrap">
+      ${renderMatrix(uploadMatrix,'Your image (8×8 greyscale)',{colorMode:'negpos',animate:true})}
+      <div class="op-sym">→</div>
+      ${renderMatrix(act,`After ${PRESETS[presetName].label} + ReLU (6×6)`,{animate:true})}
+    </div>
+    <div class="math-box">Kernel: ${presetName}
+Conv output size: (8−3+0)/1+1 = 6  →  6×6
+After ReLU: ${zeros} of ${act.flat().length} values zeroed (${Math.round(zeros/act.flat().length*100)}%)
+Max activation: ${max}  (${max>0?'pattern detected':'no response — kernel not matching this image'})</div>
+    <div class="takeaway">${PRESETS[presetName].desc}</div>`;
+}
+
+/* ─────────────────────────────────────────────
+   BACKPROP VISUALISER
+───────────────────────────────────────────── */
+let bpKernel=[[ 0.5,-0.5],[ 0.3, 0.2]];
+let bpInput=[[1,0,1,0],[0,1,0,1],[1,0,1,0],[0,1,0,1]];
+let bpTarget=1.0, bpEpoch=0, bpLossHistory=[];
+let bpAutoTimer=null;
+
+function renderBPKernelGrid(k, id){
+  const g=`<div class="grid-matrix" style="grid-template-columns:repeat(${k[0].length},48px);gap:2px">${
+    k.flat().map(v=>{const{bg,fg}=negPosColor(v);return`<div class="cell" style="width:48px;height:48px;background:${bg};color:${fg};font-size:12px">${Math.round(v*100)/100}</div>`}).join('')
+  }</div>`;
+  const el=document.getElementById(id);
+  if(el){el.innerHTML=g;}
+  return g;
+}
+
+function bpForward(){
+  const {out}=convolve(bpInput,bpKernel,1,0);
+  const act=reluMat(out);
+  return act.flat().reduce((a,b)=>a+b,0)/act.flat().length;
+}
+
+function runBPStep(){
+  bpEpoch++;
+  const pred=bpForward();
+  const loss=Math.round((pred-bpTarget)**2*10000)/10000;
+  bpLossHistory.push(loss);
+  const err=2*(pred-bpTarget);
+  const grad=bpKernel.map((row,ri)=>row.map((_,ci)=>Math.round(err*bpInput[ri][ci]*100)/100));
+  const eta=parseFloat(document.getElementById('bp-lr')?.value||0.1);
+  const oldK=bpKernel.map(r=>[...r]);
+  bpKernel=bpKernel.map((row,ri)=>row.map((w,ci)=>Math.round((w-eta*grad[ri][ci])*1000)/1000));
+
+  // update DOM nodes
+  document.getElementById('bpv-epoch').textContent=bpEpoch;
+  document.getElementById('bpv-pred').textContent=Math.round(pred*1000)/1000;
+  document.getElementById('bpv-loss').textContent=loss;
+  document.getElementById('bpv-loss').style.color=loss<0.01?'var(--teal)':loss<0.1?'var(--amber)':'var(--coral)';
+
+  // grad grid
+  const gg=document.getElementById('bp-grad-grid');
+  if(gg){
+    gg.innerHTML=`<div class="grid-matrix" style="grid-template-columns:repeat(${grad[0].length},52px);gap:2px">${
+      grad.flat().map(v=>{
+        const cls=v>0.001?'diff-cell-neg':v<-0.001?'diff-cell-pos':'diff-cell-zer';
+        const{bg,fg}=negPosColor(v*-1);
+        return`<div class="cell animate-in" style="width:52px;height:52px;background:${bg};color:${fg};font-size:12px">${v}</div>`;
+      }).join('')
+    }</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:6px">∂L/∂w = 2(ŷ−y) × input patch &nbsp;|&nbsp; err = ${Math.round(err*1000)/1000}</div>`;
+  }
+
+  renderBPKernelGrid(oldK,'bp-k-old');
+  renderBPKernelGrid(bpKernel,'bp-k-new');
+  renderBPKernelGrid(bpKernel,'bp-k-current');
+
+  const insight=document.getElementById('bp-insight');
+  if(insight){
+    if(loss<0.001) insight.innerHTML=`<strong>Converged!</strong> Loss = ${loss}. Prediction ≈ target.`;
+    else insight.innerHTML=`Epoch ${bpEpoch}: pred=${Math.round(pred*1000)/1000}, loss=${loss}. ${pred>bpTarget?'Overshot — weights will be reduced.':'Undershot — weights will be increased.'}`;
+  }
+
+  drawBPLossChart();
+}
+
+function resetBP(){
+  clearInterval(bpAutoTimer); bpAutoTimer=null;
+  bpKernel=[[0.5,-0.5],[0.3,0.2]]; bpEpoch=0; bpLossHistory=[];
+  const el=document.getElementById('bpv-epoch'); if(el) el.textContent='0';
+  const ep=document.getElementById('bpv-pred'); if(ep) ep.textContent='—';
+  const el2=document.getElementById('bpv-loss'); if(el2){el2.textContent='—';el2.style.color='';}
+  const gg=document.getElementById('bp-grad-grid'); if(gg) gg.innerHTML='<p style="font-size:12px;color:var(--text2)">Run a step to see gradients</p>';
+  renderBPKernelGrid(bpKernel,'bp-k-old');
+  renderBPKernelGrid(bpKernel,'bp-k-new');
+  renderBPKernelGrid(bpKernel,'bp-k-current');
+  const ins=document.getElementById('bp-insight'); if(ins) ins.textContent='';
+  const c=document.getElementById('bp-loss-canvas'); if(c){const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
+  const ab=document.getElementById('bp-auto-btn'); if(ab){ab.textContent='Auto train';ab.classList.remove('primary');}
+}
+
+function toggleBPAuto(){
+  if(bpAutoTimer){clearInterval(bpAutoTimer);bpAutoTimer=null;document.getElementById('bp-auto-btn').textContent='Auto train';document.getElementById('bp-auto-btn').classList.remove('primary');return;}
+  document.getElementById('bp-auto-btn').textContent='Stop';document.getElementById('bp-auto-btn').classList.add('primary');
+  bpAutoTimer=setInterval(()=>{
+    runBPStep();
+    if(bpLossHistory[bpLossHistory.length-1]<0.0001||bpEpoch>=50){clearInterval(bpAutoTimer);bpAutoTimer=null;document.getElementById('bp-auto-btn').textContent='Auto train';document.getElementById('bp-auto-btn').classList.remove('primary');}
+  },180);
+}
+
+function drawBPLossChart(){
+  const canvas=document.getElementById('bp-loss-canvas');
+  if(!canvas||bpLossHistory.length<2) return;
+  const W=canvas.offsetWidth||300, H=100;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const hist=bpLossHistory, max=Math.max(...hist,.001);
+  // grid
+  ctx.strokeStyle='rgba(128,128,128,0.1)'; ctx.lineWidth=1;
+  [.25,.5,.75,1].forEach(f=>{ctx.beginPath();ctx.moveTo(0,H*(1-f));ctx.lineTo(W,H*(1-f));ctx.stroke();});
+  // line
+  ctx.beginPath(); ctx.strokeStyle='var(--blue)'; ctx.lineWidth=2;
+  hist.forEach((v,i)=>{
+    const x=(i/(hist.length-1||1))*W, y=H-(v/max)*H*.92-4;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+  ctx.fillStyle='rgba(55,138,221,0.1)';ctx.fill();
+  ctx.fillStyle='var(--blue)';ctx.font='10px monospace';
+  ctx.fillText(`loss: ${hist[hist.length-1].toFixed(4)}`,6,14);
+}
+
+function renderBackpropStep(){
+  return `
+    <div class="panel">
+      <div class="panel-title">Backpropagation & SGD — one step at a time</div>
+      <div class="panel-sub">Watch exactly how a kernel update happens: forward pass → MSE loss → gradient → weight delta → new kernel. Run steps or let it train automatically.</div>
+      <div class="ctrl-row">
+        <label style="font-size:12px;color:var(--text2)">Learning rate η</label>
+        <input id="bp-lr" type="number" step="0.01" min="0.001" max="1" value="0.1" style="width:70px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:4px 8px;color:var(--text);font-size:12px">
+        <button class="ctrl-btn primary" onclick="runBPStep()">Run one SGD step →</button>
+        <button class="ctrl-btn warn" id="bp-auto-btn" onclick="toggleBPAuto()">Auto train</button>
+        <button class="ctrl-btn" onclick="resetBP()">Reset</button>
+      </div>
+
+      <div class="bp-flow">
+        <div class="bp-node"><div class="bp-node-label">Epoch</div><div class="bp-node-val" id="bpv-epoch">0</div></div>
+        <div class="bp-arrow-sym">→</div>
+        <div class="bp-node"><div class="bp-node-label">Prediction ŷ</div><div class="bp-node-val" id="bpv-pred">—</div></div>
+        <div class="bp-arrow-sym">→</div>
+        <div class="bp-node"><div class="bp-node-label">MSE Loss (ŷ−1)²</div><div class="bp-node-val" id="bpv-loss">—</div></div>
+        <div class="bp-arrow-sym">→</div>
+        <div class="bp-node"><div class="bp-node-label">Update w←w−η·∇</div><div class="bp-node-val" id="bpv-update">↓</div></div>
+      </div>
+      <div class="takeaway info" id="bp-insight" style="min-height:20px;"></div>
+
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+        <div>
+          <div class="matrix-label">Current kernel (2×2 for clarity)</div>
+          <div id="bp-k-current"></div>
+        </div>
+        <div>
+          <div class="matrix-label">Input (4×4)</div>
+          ${renderMatrix(bpInput,'',{colorMode:'negpos'})}
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div class="matrix-label">Gradient ∂L/∂w (run a step)</div>
+          <div id="bp-grad-grid"><p style="font-size:12px;color:var(--text2)">Run a step to see gradients</p></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+        <div>
+          <div class="matrix-label">Old kernel (before step)</div>
+          <div id="bp-k-old"></div>
+        </div>
+        <div class="op-sym" style="align-self:center">→</div>
+        <div>
+          <div class="matrix-label">New kernel (after SGD step)</div>
+          <div id="bp-k-new"></div>
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <div class="matrix-label">Loss curve</div>
+          <div class="loss-chart-wrap"><canvas id="bp-loss-canvas" height="100" style="width:100%"></canvas></div>
+        </div>
+      </div>
+
+      <div class="math-box">Backprop formulas:
+
+Forward:    ŷ = mean(ReLU(W★x))        (★ = convolution)
+Loss:       L = (ŷ − y)²               (MSE, target y = 1.0)
+Gradient:   ∂L/∂w ≈ 2(ŷ − y) × xᵢⱼ  (chain rule simplified)
+Update:     w ← w − η · ∂L/∂w
+
+Green cell in gradient = weight will INCREASE (∂L/∂w negative)
+Red cell in gradient   = weight will DECREASE (∂L/∂w positive)
+
+Real backprop also flows gradient through:
+  → ReLU (only where activation > 0)
+  → Pooling (back to max cell's position only)
+  → Flatten (reshape back to 2D)
+  → Conv (∂L/∂w for each kernel weight at every position)</div>
+      <div class="takeaway amber">Key: Every time you run a step, the kernel moves slightly toward producing better predictions. After enough steps, the kernel has "learned" the weights that minimise loss on this data. Multiply this by millions of parameters and thousands of batches — that's neural network training.</div>
+    </div>`;
+}
+
+/* ─────────────────────────────────────────────
+   STEPS ARRAY
+───────────────────────────────────────────── */
+const ARCH=['Input','Conv2D','ReLU','MaxPool','Flatten','FC Layer','Softmax','Multi-filter','Upload','Backprop','Summary'];
+let curStep=0;
+
+const STEPS=[
+  /* 0 — Input */
+  { label:'Input', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Step 1 — Input layer</div>
+      <div class="panel-sub">A 6×6 image with values in [−1, +1]. Negative values represent dark/inverted pixels. This range guarantees negatives after convolution.</div>
+      <div><span class="dim-badge">6 × 6 × 1</span><span class="tag">height × width × channels</span></div>
+      <div class="legend-row"><span><span class="ldot" style="background:#5dcaa5"></span>positive</span><span><span class="ldot" style="background:#d85a30"></span>negative</span><span><span class="ldot" style="background:var(--bg2);border:0.5px solid var(--border)"></span>zero</span></div>
+      <div class="grid-wrap">${renderMatrix(INPUT,'Input (6×6)',{colorMode:'negpos'})}</div>
+      <div class="math-box">Shape: (6, 6, 1)  →  36 values total
+Normalised range: [−1, +1]
+  e.g. raw_pixel / 128 − 1  (for uint8 images)
+
+The kernel we use is a vertical-edge detector:
+  [ 1,  0, −1]    Left column amplifies bright-left
+  [ 1,  0, −1]    Middle column ignored (weight=0)
+  [ 1,  0, −1]    Right column penalises bright-right
+
+  Positive output  →  left side brighter than right (left edge)
+  Negative output  →  right side brighter than left (right edge)
+  Near zero        →  uniform region, no edge present</div>
+      <div class="takeaway">Key: Real CNN inputs are always normalised. Using [−1,+1] here means the kernel can produce both positive and negative dot products — making ReLU's effect visually meaningful in the next steps.</div>
+    </div>` },
+
+  /* 1 — Conv2D with live kernel lab */
+  { label:'Conv2D', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Step 2 — Convolutional layer (Conv2D)</div>
+      <div class="panel-sub">The kernel slides over all 16 valid positions. Edit the kernel or pick a preset to see the feature map update live.</div>
+      <div><span class="dim-badge">6×6 → 4×4</span><span class="tag">(6−3)/1+1 = 4</span><span class="tag">Stride=1, Padding=valid</span></div>
+      ${buildKernelLabHTML()}
+      <div class="legend-row"><span><span class="lring" style="color:var(--blue)"></span>input patch</span><span><span class="lring" style="color:var(--teal)"></span>output being written</span><span><span class="ldot" style="background:#5dcaa5"></span>positive</span><span><span class="ldot" style="background:#d85a30"></span>negative</span></div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="conv-prev" onclick="convStep(-1)">&#8592; Prev</button>
+        <button class="ctrl-btn" id="conv-auto" onclick="toggleConvAuto()">Auto play</button>
+        <button class="ctrl-btn" id="conv-next" onclick="convStep(1)">Next &#8594;</button>
+        <button class="ctrl-btn" onclick="convReset()">Reset</button>
+        <span id="ci-pos" style="font-size:12px;color:var(--text2);font-family:monospace"></span>
+      </div>
+      <div class="anim-layout">
+        <div id="ci-input"></div>
+        <div class="op-sym" style="align-self:center">&#8857;</div>
+        <div id="ci-kernel"></div>
+        <div class="op-sym" style="align-self:center">=</div>
+        <div id="ci-feat"></div>
+        <div style="flex:1;min-width:230px"><div class="matrix-label">Calculation</div><div class="calc-box" id="ci-calc"></div></div>
+      </div>
+      <div class="math-box">Formula: output[i][j] = Σₘ Σₙ input[i+m][j+n] × kernel[m][n]
+
+Full 4×4 output (vertical edge kernel, verified):
+  row 0: [−1,  4,  4, −1]
+  row 1: [−2,  2,  4,  1]
+  row 2: [−3, −2,  2,  3]
+  row 3: [ 0, −3, −2,  1]
+
+Negatives: 7 out of 16 values  (44%)
+  → these are "reverse-edge" responses</div>
+      <div class="takeaway">Key: The live editor above lets you change what the kernel detects. A zero-sum kernel detects differences (edges). A positive-sum kernel brightens/blurs. Negative values from convolution are normal — they encode "reverse" pattern responses.</div>
+    </div>` },
+
+  /* 2 — ReLU */
+  { label:'ReLU', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Step 3 — ReLU activation</div>
+      <div class="panel-sub">max(0, x) — all 7 negatives become zero, all 9 positives survive unchanged</div>
+      <div><span class="dim-badge">4×4 → 4×4</span><span class="tag">shape unchanged</span><span class="tag">7 values zeroed</span></div>
+      <div class="legend-row"><span><span class="ldot" style="background:#5dcaa5"></span>kept (positive)</span><span><span class="ldot" style="background:var(--bg2);border:0.5px solid var(--border)"></span>zeroed (was negative)</span></div>
+      <div class="grid-wrap">
+        ${renderMatrix(CONV_ORIG,'After Conv (4×4)',{colorMode:'negpos'})}
+        <div class="op-sym">&#8594;</div>
+        ${renderMatrix(RELU_ORIG,'After ReLU (4×4)',{colorMode:'heat',animate:true})}
+      </div>
+      <div class="math-box">ReLU(x) = max(0, x)
+
+Before → After (cell by cell):
+  row 0:  [−1, 4, 4,−1]  →  [0, 4, 4, 0]   (2 zeroed)
+  row 1:  [−2, 2, 4, 1]  →  [0, 2, 4, 1]   (1 zeroed)
+  row 2:  [−3,−2, 2, 3]  →  [0, 0, 2, 3]   (2 zeroed)
+  row 3:  [ 0,−3,−2, 1]  →  [0, 0, 0, 1]   (2 zeroed)
+
+Values zeroed: 7 / 16  (44%)
+Values kept:   9 / 16  (56%)
+Maximum value: 4 (unchanged)
+
+Gradient of ReLU:
+  dReLU/dx = 1  if x > 0
+  dReLU/dx = 0  if x ≤ 0  (dead — no gradient flows back)</div>
+      <div class="takeaway">Key: 44% of the feature map is zeroed here — normal and desirable. Sparsity speeds up computation and prevents overfitting. The "dead gradient" at zero is why LeakyReLU (slope=0.01 for negatives) was invented: it keeps a tiny gradient flowing even through zeroed neurons.</div>
+    </div>` },
+
+  /* 3 — MaxPool */
+  { label:'MaxPool', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Step 4 — Max pooling (2×2, stride 2)</div>
+      <div class="panel-sub">4 non-overlapping windows → each contributes one value to the 2×2 output</div>
+      <div><span class="dim-badge">4×4 → 2×2</span><span class="tag">(4−2)/2+1 = 2</span><span class="tag">4 windows</span><span class="tag">75% compression</span></div>
+      <div class="legend-row"><span><span class="lring" style="color:var(--blue)"></span>current window</span><span><span class="lring" style="color:var(--coral)"></span>max cell (kept)</span></div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="pool-prev" onclick="poolStep(-1)">&#8592; Prev</button>
+        <button class="ctrl-btn" id="pool-auto" onclick="togglePoolAuto()">Auto play</button>
+        <button class="ctrl-btn" id="pool-next" onclick="poolStep(1)">Next &#8594;</button>
+        <button class="ctrl-btn" onclick="poolReset()">Reset</button>
+        <span id="pool-pos" style="font-size:12px;color:var(--text2);font-family:monospace"></span>
+      </div>
+      <div class="anim-layout">
+        <div id="pi-relu"></div>
+        <div class="op-sym" style="align-self:center">&#8594;</div>
+        <div id="pi-pool"></div>
+        <div style="flex:1;min-width:230px"><div class="matrix-label">Window detail</div><div class="calc-box" id="pi-info"></div></div>
+      </div>
+      <div class="math-box">All 4 windows and their results:
+
+  Window 1  rows 0:2, cols 0:2  →  pool[0][0]  max([[0,4],[0,2]]) = 4
+  Window 2  rows 0:2, cols 2:4  →  pool[0][1]  max([[4,0],[4,1]]) = 4
+  Window 3  rows 2:4, cols 0:2  →  pool[1][0]  max([[0,0],[0,0]]) = 0
+  Window 4  rows 2:4, cols 2:4  →  pool[1][1]  max([[2,3],[0,1]]) = 3
+
+Final 2×2 pool output:  [[4, 4], [0, 3]]
+
+16 values → 4  (75% reduction, 0 learnable params)</div>
+      <div class="takeaway">Key: Window 3 outputs 0 — the entire bottom-left quadrant had no positive activations after ReLU. MaxPool preserves the strongest signal per region, giving the network tolerance to small positional shifts.</div>
+    </div>` },
+
+  /* 4 — Flatten */
+  { label:'Flatten', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Step 5 — Flatten</div>
+      <div class="panel-sub">Reshape the 2×2 feature map into a 1D vector. No math — just a change of shape.</div>
+      <div><span class="dim-badge">(2×2) → [4]</span><span class="tag">0 parameters</span></div>
+      <div class="grid-wrap">${renderMatrix(POOL_ORIG,'MaxPool output (2×2)',{})}
+        <div class="op-sym">&#8594;</div>${renderVector(FLAT,'Flattened [4]')}</div>
+      <div class="math-box">Shape: (2, 2, 1)  →  (4,)
+Reading order: row-major (left→right, top→bottom)
+  pool[0][0] = ${POOL_ORIG[0][0]}
+  pool[0][1] = ${POOL_ORIG[0][1]}
+  pool[1][0] = ${POOL_ORIG[1][0]}   ← entire bottom-left region had no activation
+  pool[1][1] = ${POOL_ORIG[1][1]}
+
+Result vector: [${FLAT.join(', ')}]
+
+In a realistic net (32 filters, 7×7 pool after 3 conv blocks):
+  Flat size = 32 × 7 × 7 = 1,568 values</div>
+      <div class="takeaway">Key: The zero at index 2 carries information — it tells the FC layer "no edge was detected in the bottom-left". The FC layer learns to interpret the entire pattern [4, 4, 0, 3] as evidence for or against each class.</div>
+    </div>` },
+
+  /* 5 — FC Layer */
+  { label:'FC Layer', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Step 6 — Fully connected (dense) layer</div>
+      <div class="panel-sub">Every feature connects to every class neuron via learned weights + bias</div>
+      <div><span class="dim-badge">[4] → [4]</span><span class="tag">weights: 4×4=16</span><span class="tag">+4 biases = 20 params</span></div>
+      <div class="grid-wrap">${renderVector(FLAT,'Input [4]')}<div class="op-sym">×W+b</div>${renderVector(FC_OUT,'Logits [4]')}</div>
+      <div class="math-box">y = W · x + b
+
+W (4×4):
+  cat:  [${FC_W[0].join(', ')}]
+  dog:  [${FC_W[1].join(', ')}]
+  bird: [${FC_W[2].join(', ')}]
+  fish: [${FC_W[3].join(', ')}]
+
+x (input): [${FLAT.join(', ')}]
+
+y[cat]  = (${FLAT.map((v,i)=>`${v}×${FC_W[0][i]}`).join('+')})+${FC_B[0]} = ${FC_OUT[0]}
+y[dog]  = (${FLAT.map((v,i)=>`${v}×${FC_W[1][i]}`).join('+')})+${FC_B[1]} = ${FC_OUT[1]}
+y[bird] = (${FLAT.map((v,i)=>`${v}×${FC_W[2][i]}`).join('+')})+${FC_B[2]} = ${FC_OUT[2]}
+y[fish] = (${FLAT.map((v,i)=>`${v}×${FC_W[3][i]}`).join('+')})+${FC_B[3]} = ${FC_OUT[3]}</div>
+      <div class="takeaway">Key: These raw numbers (logits) have no probability meaning yet. Softmax converts them into a proper distribution in the next step.</div>
+    </div>` },
+
+  /* 6 — Softmax */
+  { label:'Softmax', render:()=>{
+    const winner=CLASS_NAMES[SOFT.indexOf(Math.max(...SOFT))];
+    const bars=CLASS_NAMES.map((cls,i)=>{
+      const pct=(SOFT[i]*100).toFixed(1);
+      return `<div class="bar-row"><div class="bar-label">${cls}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${BAR_COLORS[i]}">${pct}%</div></div><div class="bar-pct">${SOFT[i].toFixed(3)}</div></div>`;
+    }).join('');
+    return `
+    <div class="panel">
+      <div class="panel-title">Step 7 — Softmax output</div>
+      <div class="panel-sub">Convert logits to probabilities. All values positive, sum = 1.0.</div>
+      <div><span class="dim-badge">[4] logits → [4] probs</span><span class="tag">Prediction: ${winner}</span><span class="tag">Σ = 1.0</span></div>
+      <div style="margin:14px 0">${bars}</div>
+      <div class="math-box">softmax(zᵢ) = e^(zᵢ − max(z)) / Σⱼ e^(zⱼ − max(z))
+
+Logits z:      [${FC_OUT.join(', ')}]
+max(z):         ${Math.max(...FC_OUT)}
+e^(z−max):     [${FC_OUT.map(v=>Math.exp(v-Math.max(...FC_OUT)).toFixed(4)).join(', ')}]
+Σ e^(z−max):   ${FC_OUT.map(v=>Math.exp(v-Math.max(...FC_OUT))).reduce((a,b)=>a+b,0).toFixed(4)}
+Probabilities: [${SOFT.join(', ')}]
+Sum check:     ${SOFT.reduce((a,b)=>a+b,0).toFixed(4)} ✓
+
+Prediction:    ${winner.toUpperCase()}  (${(Math.max(...SOFT)*100).toFixed(1)}% confidence)
+
+Cross-entropy loss (true label = cat, y=[1,0,0,0]):
+  L = −log(p̂_cat) = −log(${SOFT[0]}) = ${(-Math.log(SOFT[0])).toFixed(4)}
+
+Gradient w.r.t. logits:  ∂L/∂z = p̂ − y
+  = [${SOFT.map((v,i)=>(v-(i===0?1:0)).toFixed(4)).join(', ')}]</div>
+      <div class="takeaway">Key: The gradient ∂L/∂z = p̂ − y flows back through FC (chain rule) → flatten (pass-through) → pool (routes to max cell) → ReLU (only where positive) → conv (updating each kernel weight). That's backpropagation.</div>
+    </div>`;
+  }},
+
+  /* 7 — Multi-filter (NEW) */
+  { label:'Multi-filter', render:()=>renderMultiFilter() },
+
+  /* 8 — Upload (NEW) */
+  { label:'Upload', render:()=>renderUploadStep() },
+
+  /* 9 — Backprop (NEW) */
+  { label:'Backprop', render:()=>renderBackpropStep() },
+
+  /* 10 — Summary */
+  { label:'Summary', render:()=>`
+    <div class="panel">
+      <div class="panel-title">Full pipeline — dimensions and parameter count</div>
+      <div class="panel-sub">Every layer, shape, and parameter in one view</div>
+      <table class="sum-table">
+        <thead><tr><th>Layer</th><th>Input shape</th><th>Output shape</th><th>Params</th><th>Key fact</th></tr></thead>
+        <tbody>
+          <tr><td>Input</td><td>(6,6,1)</td><td>(6,6,1)</td><td>0</td><td>Normalised to [−1,+1]</td></tr>
+          <tr><td>Conv2D (3×3, 1 filter)</td><td>(6,6,1)</td><td>(4,4,1)</td><td>9+1=10</td><td>7/16 values negative</td></tr>
+          <tr><td>ReLU</td><td>(4,4,1)</td><td>(4,4,1)</td><td>0</td><td>7/16 zeroed (44%)</td></tr>
+          <tr><td>MaxPool (2×2, s=2)</td><td>(4,4,1)</td><td>(2,2,1)</td><td>0</td><td>75% spatial compression</td></tr>
+          <tr><td>Flatten</td><td>(2,2,1)</td><td>(4,)</td><td>0</td><td>Spatial info gone</td></tr>
+          <tr><td>Dense (4 units)</td><td>(4,)</td><td>(4,)</td><td>16+4=20</td><td>All features → all classes</td></tr>
+          <tr><td>Softmax</td><td>(4,)</td><td>(4,)</td><td>0</td><td>Σ probs = 1.0</td></tr>
+          <tr><td>Multi-filter (4 kernels)</td><td>(6,6,1)</td><td>(4,4,4)</td><td>4×10=40</td><td>4 feature maps stacked</td></tr>
+          <tr class="total-row"><td colspan="3">Total trainable parameters (base pipeline)</td><td>30</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="math-box">Conv output size  = (N − F + 2P) / S + 1
+  (6 − 3 + 0) / 1 + 1 = 4  →  4×4
+
+Pool output size  = (N − pool) / stride + 1
+  (4 − 2) / 2 + 1 = 2  →  2×2
+
+Key numbers in this simulation:
+  Conv negatives:   7 / 16 (44%)   — meaningful signal
+  ReLU zeros:       8 / 16 (50%)   — includes conv zeros
+  Pool compression: 16 → 4  (75% reduction)
+  FC parameters:   20 / 30 total  (67% of all params)
+
+Real scale — ResNet-50:
+  Input 224×224×3  →  49 conv layers
+  BatchNorm + ReLU after each conv
+  GlobalAvgPool (no FC!) → FC(1000)
+  Total: ~25.6 million parameters</div>
+      <div class="takeaway">Big picture: Conv layers extract features (edges → textures → shapes → objects), ReLU introduces non-linearity and sparsity, Pool compresses spatial dimensions and builds translation tolerance, FC classifies the extracted feature vector. Training = forward pass → cross-entropy loss → backprop → SGD/Adam weight update → repeat.</div>
+    </div>` }
+];
+
+/* ─────────────────────────────────────────────
+   NAVIGATION
+───────────────────────────────────────────── */
+function renderArch(){
+  document.getElementById('arch-display').innerHTML=ARCH.map((a,i)=>
+    `<span class="arch-box${i===curStep?' active':''}" onclick="goStep(${i})">${a}</span>${i<ARCH.length-1?'<span class="arch-arrow">›</span>':''}`
+  ).join('');
+}
+
+function renderStep(){
+  stopConvAuto(); stopPoolAuto();
+  convPos=0; poolPos=0;
+  document.getElementById('step-content').innerHTML=STEPS[curStep].render();
+  renderArch();
+  document.getElementById('prog').style.width=`${((curStep+1)/STEPS.length)*100}%`;
+  document.getElementById('prev-btn').disabled=curStep===0;
+  document.getElementById('next-btn').disabled=curStep===STEPS.length-1;
+  document.getElementById('step-counter').textContent=`${curStep+1} / ${STEPS.length}`;
+  if(curStep===1){ setTimeout(()=>{ renderConvStep(); updateLiveOutput(); applyPreset('vedge'); },50); }
+  if(curStep===3){ setTimeout(renderPoolStep,50); }
+  if(curStep===9){ setTimeout(()=>{ renderBPKernelGrid(bpKernel,'bp-k-current'); renderBPKernelGrid(bpKernel,'bp-k-old'); renderBPKernelGrid(bpKernel,'bp-k-new'); },50); }
+  if(curStep===8){ setTimeout(()=>{ if(uploadMatrix) showUploadResult('vedge'); },50); }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function goStep(i){curStep=i;renderStep();}
+function changeStep(d){curStep=Math.max(0,Math.min(STEPS.length-1,curStep+d));renderStep();}
+renderStep();
+</script>
+</body>
+</html>
