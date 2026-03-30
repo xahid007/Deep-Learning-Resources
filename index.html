@@ -8,63 +8,86 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg:#ffffff; --bg2:#f5f5f4; --bg3:#ebebea;
-    --bg-info:#e6f1fb; --bg-success:#eaf3de;
+    --bg-info:#e6f1fb; --bg-success:#eaf3de; --bg-warn:#faeeda; --bg-danger:#fcebeb;
     --text:#1a1a18; --text2:#5f5e5a; --text3:#888780;
-    --text-info:#0c447c; --text-success:#27500a;
+    --text-info:#0c447c; --text-success:#27500a; --text-warn:#633806; --text-danger:#791f1f;
     --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.22);
     --border-info:rgba(24,95,165,0.4); --border-success:rgba(59,109,17,0.4);
-    --blue:#378ADD; --teal:#1D9E75; --coral:#D85A30;
+    --border-warn:rgba(133,79,11,0.4); --border-danger:rgba(162,45,45,0.4);
+    --blue:#378ADD; --teal:#1D9E75; --coral:#D85A30; --amber:#BA7517; --purple:#534AB7;
     --radius:10px; --radius-sm:6px;
   }
   @media (prefers-color-scheme:dark) {
     :root {
       --bg:#1e1e1c; --bg2:#2a2a28; --bg3:#333330;
-      --bg-info:#042c53; --bg-success:#173404;
+      --bg-info:#042c53; --bg-success:#173404; --bg-warn:#412402; --bg-danger:#501313;
       --text:#e8e6de; --text2:#b4b2a9; --text3:#888780;
-      --text-info:#85b7eb; --text-success:#97c459;
+      --text-info:#85b7eb; --text-success:#97c459; --text-warn:#fac775; --text-danger:#f09595;
       --border:rgba(255,255,255,0.1); --border2:rgba(255,255,255,0.2);
       --border-info:rgba(55,138,221,0.4); --border-success:rgba(99,153,34,0.4);
-      --blue:#85B7EB; --teal:#5DCAA5; --coral:#F0997B;
+      --border-warn:rgba(186,117,23,0.4); --border-danger:rgba(240,149,149,0.3);
+      --blue:#85B7EB; --teal:#5DCAA5; --coral:#F0997B; --amber:#EF9F27; --purple:#AFA9EC;
     }
   }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:var(--bg3); color:var(--text); min-height:100vh; padding:2rem 1rem; font-size:14px; line-height:1.6; }
-  .container { max-width:880px; margin:0 auto; }
+  .container { max-width:920px; margin:0 auto; }
   h1 { font-size:22px; font-weight:500; margin-bottom:4px; }
   .subtitle { font-size:13px; color:var(--text2); margin-bottom:1.5rem; }
+
+  /* arch bar */
   .arch-row { display:flex; gap:4px; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem; padding:10px 14px; background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius); }
   .arch-box { padding:4px 10px; border-radius:var(--radius-sm); font-size:11px; font-weight:500; border:0.5px solid var(--border); background:var(--bg2); color:var(--text2); cursor:pointer; transition:all .15s; }
   .arch-box.active { background:var(--bg-info); color:var(--text-info); border-color:var(--border-info); }
   .arch-arrow { font-size:12px; color:var(--text3); }
   .progress-bar { height:3px; background:var(--bg3); border-radius:2px; margin-bottom:1.25rem; overflow:hidden; }
   .progress-fill { height:100%; background:var(--blue); border-radius:2px; transition:width .35s ease; }
+
+  /* panels */
   .panel { background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin-bottom:1rem; }
   .panel-title { font-size:15px; font-weight:500; margin-bottom:3px; }
   .panel-sub { font-size:12px; color:var(--text2); margin-bottom:1rem; }
   .dim-badge { display:inline-block; background:var(--bg-info); color:var(--text-info); border-radius:var(--radius-sm); padding:2px 8px; font-size:11px; font-weight:500; margin-right:6px; margin-bottom:8px; }
+  .dim-badge.green { background:var(--bg-success); color:var(--text-success); }
+  .dim-badge.amber { background:var(--bg-warn); color:var(--text-warn); }
   .tag { display:inline-block; background:var(--bg2); border:0.5px solid var(--border); border-radius:4px; padding:1px 7px; font-size:11px; color:var(--text2); margin-right:4px; margin-bottom:8px; }
   .math-box { background:var(--bg2); border-radius:var(--radius-sm); padding:10px 14px; font-family:'Menlo','Consolas','Monaco',monospace; font-size:12px; color:var(--text); line-height:1.85; margin:10px 0; overflow-x:auto; white-space:pre; }
   .takeaway { background:var(--bg-success); border-left:3px solid var(--border-success); padding:8px 12px; border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:12px; color:var(--text); margin-top:10px; line-height:1.7; }
+  .takeaway.amber { background:var(--bg-warn); border-color:var(--border-warn); }
+  .takeaway.info { background:var(--bg-info); border-color:var(--border-info); }
+
+  /* grid cells */
   .grid-wrap { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; margin:12px 0; }
   .op-sym { font-size:22px; color:var(--text3); align-self:center; }
   .matrix-label { font-size:11px; color:var(--text2); margin-bottom:4px; font-weight:500; }
-  .cell { width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:500; border-radius:3px; border:0.5px solid var(--border); }
+  .cell { width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:500; border-radius:3px; border:0.5px solid var(--border); transition:all .2s; }
+  .cell.editable { cursor:text; border-color:var(--border-warn); background:var(--bg-warn) !important; color:var(--text-warn) !important; }
+  .cell.editable input { width:100%; height:100%; background:none; border:none; outline:none; text-align:center; font-size:11px; font-weight:600; font-family:'Menlo','Consolas','Monaco',monospace; color:var(--text-warn); cursor:text; }
   .grid-matrix { display:grid; gap:2px; }
   .cell.hl { outline:2.5px solid var(--blue); outline-offset:1px; z-index:1; position:relative; }
-  .cell.result-hl { outline:2.5px solid var(--teal); outline-offset:1px; z-index:1; position:relative; }
-  .cell.pool-win { outline:2.5px solid var(--blue); outline-offset:1px; z-index:1; position:relative; }
-  .cell.pool-max { outline:2.5px solid var(--coral); outline-offset:1px; z-index:1; position:relative; }
-  .cell.cur-out { outline:2.5px solid var(--coral); outline-offset:1px; z-index:1; position:relative; }
+  .cell.result-hl { outline:2.5px solid var(--teal); outline-offset:1px; z-index:1; }
+  .cell.pool-win { outline:2.5px solid var(--blue); outline-offset:1px; z-index:1; }
+  .cell.pool-max { outline:2.5px solid var(--coral); outline-offset:1px; z-index:1; }
+  .cell.cur-out { outline:2.5px solid var(--coral); outline-offset:1px; z-index:1; }
+
+  @keyframes cell-pop { 0%{transform:scale(.85);opacity:.4} 60%{transform:scale(1.07)} 100%{transform:scale(1);opacity:1} }
+  .cell.animate-in { animation:cell-pop .25s ease forwards; }
+  @keyframes pulse-max { 0%,100%{box-shadow:0 0 0 0 rgba(29,158,117,0)} 50%{box-shadow:0 0 0 4px rgba(29,158,117,0.3)} }
+  .cell.pool-max { animation:pulse-max 1.2s ease 2; }
+
+  /* nav */
   .nav-btns { display:flex; gap:8px; margin-top:1rem; align-items:center; }
   .nav-btn { padding:6px 20px; border-radius:var(--radius-sm); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); cursor:pointer; font-size:13px; transition:background .15s; }
   .nav-btn:hover:not(:disabled) { background:var(--bg2); }
   .nav-btn:disabled { opacity:0.35; cursor:default; }
   .step-counter { font-size:12px; color:var(--text3); margin-left:8px; }
-  .ctrl-btn { padding:5px 14px; border-radius:var(--radius-sm); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); cursor:pointer; font-size:12px; font-weight:500; transition:background .15s; }
+  .ctrl-btn { padding:5px 14px; border-radius:var(--radius-sm); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); cursor:pointer; font-size:12px; font-weight:500; transition:all .15s; }
   .ctrl-btn:hover { background:var(--bg2); }
   .ctrl-btn.primary { background:var(--bg-info); color:var(--text-info); border-color:var(--border-info); }
+  .ctrl-btn.success { background:var(--bg-success); color:var(--text-success); border-color:var(--border-success); }
+  .ctrl-btn.warn { background:var(--bg-warn); color:var(--text-warn); border-color:var(--border-warn); }
   .ctrl-row { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
   .anim-layout { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; margin:12px 0; }
-  .calc-box { background:var(--bg2); border-radius:var(--radius-sm); padding:10px 12px; font-family:'Menlo','Consolas','Monaco',monospace; font-size:11px; line-height:1.9; min-width:230px; color:var(--text); }
+  .calc-box { background:var(--bg2); border-radius:var(--radius-sm); padding:10px 12px; font-family:'Menlo','Consolas','Monaco',monospace; font-size:11px; line-height:1.9; min-width:220px; color:var(--text); }
   .pos-val { color:#1D9E75; font-weight:600; }
   .neg-val { color:#D85A30; font-weight:600; }
   .muted { color:var(--text2); }
@@ -74,19 +97,65 @@
   .bar-row { display:flex; align-items:center; gap:8px; margin:4px 0; }
   .bar-label { font-size:11px; color:var(--text2); width:36px; text-align:right; }
   .bar-track { flex:1; background:var(--bg2); border-radius:3px; height:18px; overflow:hidden; }
-  .bar-fill { height:100%; border-radius:3px; display:flex; align-items:center; padding-left:6px; font-size:10px; font-weight:500; color:#fff; transition:width .4s ease; }
+  .bar-fill { height:100%; border-radius:3px; display:flex; align-items:center; padding-left:6px; font-size:10px; font-weight:500; color:#fff; transition:width .5s ease; }
   .bar-pct { font-size:11px; color:var(--text2); width:44px; }
   .sum-table { width:100%; border-collapse:collapse; font-size:12px; margin:10px 0; }
   .sum-table th { text-align:left; padding:6px 10px; background:var(--bg2); color:var(--text2); font-weight:500; border-bottom:0.5px solid var(--border); }
   .sum-table td { padding:6px 10px; border-bottom:0.5px solid var(--border); color:var(--text); font-family:'Menlo','Consolas','Monaco',monospace; font-size:11px; }
   .sum-table tr:last-child td { border-bottom:none; }
   .sum-table tr.total-row td { font-weight:600; background:var(--bg2); }
+  select { background:var(--bg); border:0.5px solid var(--border2); border-radius:var(--radius-sm); color:var(--text); font-size:12px; padding:5px 8px; cursor:pointer; outline:none; }
+  select option { background:var(--bg); }
+
+  /* ── NEW: Live kernel lab ── */
+  .kernel-lab { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px; }
+  .kernel-lab-title { font-size:12px; font-weight:600; color:var(--text2); margin-bottom:10px; letter-spacing:.04em; }
+  .preset-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .preset-btn { padding:4px 10px; border-radius:20px; border:0.5px solid var(--border2); background:var(--bg); color:var(--text2); font-size:11px; font-weight:500; cursor:pointer; transition:all .15s; }
+  .preset-btn:hover { background:var(--bg3); color:var(--text); }
+  .preset-btn.active { background:var(--bg-warn); color:var(--text-warn); border-color:var(--border-warn); }
+  .formula-live { background:var(--bg-info); border:0.5px solid var(--border-info); border-radius:var(--radius-sm); padding:8px 14px; font-family:'Menlo','Consolas','Monaco',monospace; font-size:12px; color:var(--text-info); margin:10px 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .formula-live .fval { color:var(--teal); font-weight:700; }
+  .param-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .param-group { display:flex; align-items:center; gap:6px; }
+  .param-label { font-size:11px; color:var(--text2); font-weight:500; }
+
+  /* interpretation box */
+  .interp-box { border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; margin-top:8px; line-height:1.7; border-left:3px solid transparent; }
+  .interp-box.pos { background:var(--bg-success); border-color:var(--border-success); color:var(--text); }
+  .interp-box.neg { background:var(--bg-danger); border-color:var(--border-danger); color:var(--text); }
+  .interp-box.zero { background:var(--bg2); border-color:var(--border); color:var(--text2); }
+
+  /* ── NEW: Multi-filter ── */
+  .filter-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; margin:12px 0; }
+  .filter-card { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; }
+  .filter-name { font-size:11px; font-weight:600; color:var(--text2); margin-bottom:8px; }
+
+  /* ── NEW: Upload ── */
+  .upload-zone { border:2px dashed var(--border2); border-radius:var(--radius); padding:24px; text-align:center; cursor:pointer; transition:all .2s; background:var(--bg2); margin:10px 0; }
+  .upload-zone:hover, .upload-zone.dragover { border-color:var(--blue); background:var(--bg-info); }
+  .upload-zone p { color:var(--text2); font-size:12px; margin-top:6px; }
+
+  /* ── NEW: Backprop ── */
+  .bp-flow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0; }
+  .bp-node { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; min-width:100px; transition:all .3s; }
+  .bp-node.active { background:var(--bg-info); border-color:var(--border-info); }
+  .bp-node.done { background:var(--bg-success); border-color:var(--border-success); }
+  .bp-node-label { font-size:10px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px; }
+  .bp-node-val { font-family:'Menlo','Consolas','Monaco',monospace; font-size:13px; color:var(--text); }
+  .bp-arrow-sym { font-size:16px; color:var(--text3); }
+  .diff-cell-pos { color:var(--teal); font-weight:700; }
+  .diff-cell-neg { color:var(--coral); font-weight:700; }
+  .diff-cell-zer { color:var(--text3); }
+
+  /* ── NEW: Loss chart ── */
+  .loss-chart-wrap { background:var(--bg2); border-radius:var(--radius-sm); padding:12px; margin-top:10px; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>CNN Visual Simulation</h1>
-  <p class="subtitle">6×6 input · vertical-edge kernel · Conv gives negatives · ReLU zeros half · MaxPool gives 2×2</p>
+  <p class="subtitle">6×6 input · live-editable kernel · Conv → ReLU → MaxPool · multi-filter · backprop · upload your own image</p>
   <div class="arch-row" id="arch-display"></div>
   <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
   <div id="step-content"></div>
@@ -98,16 +167,9 @@
 </div>
 
 <script>
-/* ----------------------------------------------------------------
-   Verified data (numpy-checked):
-   INPUT 6×6, KERNEL 3×3 (vertical edge detector)
-   CONV 4×4: [[-1,4,4,-1],[-2,2,4,1],[-3,-2,2,3],[0,-3,-2,1]]
-     → 7 negatives
-   RELU 4×4: [[0,4,4,0],[0,2,4,1],[0,0,2,3],[0,0,0,1]]
-     → 8 zeros (half the map)
-   POOL 2×2 (stride=2): [[4,4],[0,3]]
-     → proper 2×2 output
----------------------------------------------------------------- */
+/* ─────────────────────────────────────────────
+   VERIFIED DATA (numpy-checked)
+───────────────────────────────────────────── */
 const INPUT = [
   [ 0, 1, 1, 0, 0, 1],
   [ 1, 1, 0,-1,-1, 0],
@@ -116,67 +178,109 @@ const INPUT = [
   [ 0,-1, 0, 1, 1, 0],
   [ 1, 0,-1, 0, 1, 1]
 ];
-const KERNEL = [
-  [ 1, 0,-1],
-  [ 1, 0,-1],
-  [ 1, 0,-1]
-];
-const CONV = [[-1,4,4,-1],[-2,2,4,1],[-3,-2,2,3],[0,-3,-2,1]];
-const RELU_O = [[0,4,4,0],[0,2,4,1],[0,0,2,3],[0,0,0,1]];
-const POOL = [[4,4],[0,3]];
-const FLAT = [4,4,0,3];
 
-const FC_W = [
-  [ 0.5,-0.3, 0.2, 0.8],
-  [ 0.3, 0.6,-0.4, 0.1],
-  [-0.2, 0.4, 0.7,-0.3],
-  [ 0.6,-0.1, 0.3, 0.5]
-];
+// Kernel state — mutable by the live lab
+let KERNEL = [[ 1, 0,-1],[ 1, 0,-1],[ 1, 0,-1]];
+
+// Pre-verified data for the original kernel
+const CONV_ORIG  = [[-1,4,4,-1],[-2,2,4,1],[-3,-2,2,3],[0,-3,-2,1]];
+const RELU_ORIG  = [[0,4,4,0],[0,2,4,1],[0,0,2,3],[0,0,0,1]];
+const POOL_ORIG  = [[4,4],[0,3]];
+const FLAT       = [4,4,0,3];
+
+// FC / softmax (fixed, based on FLAT)
+const FC_W = [[ 0.5,-0.3, 0.2, 0.8],[ 0.3, 0.6,-0.4, 0.1],[-0.2, 0.4, 0.7,-0.3],[ 0.6,-0.1, 0.3, 0.5]];
 const FC_B = [0.1,-0.1, 0.2, 0.0];
-const FC_OUT = FC_W.map((row,i)=>
-  parseFloat((FLAT.reduce((s,v,j)=>s+v*(row[j]||0),0)+FC_B[i]).toFixed(3))
-);
-
-function softmax(arr){
-  const mx=Math.max(...arr), ex=arr.map(v=>Math.exp(v-mx)), s=ex.reduce((a,b)=>a+b,0);
-  return ex.map(v=>+(v/s).toFixed(4));
-}
+const FC_OUT = FC_W.map((row,i)=>parseFloat((FLAT.reduce((s,v,j)=>s+v*(row[j]||0),0)+FC_B[i]).toFixed(3)));
+function softmax(arr){ const mx=Math.max(...arr),ex=arr.map(v=>Math.exp(v-mx)),s=ex.reduce((a,b)=>a+b,0); return ex.map(v=>+(v/s).toFixed(4)); }
 const SOFT=softmax(FC_OUT);
+const CLASS_NAMES=['cat','dog','bird','fish'];
+const BAR_COLORS=['#378ADD','#1D9E75','#BA7517','#D4537E'];
 
-/* ---- colour helpers ---- */
+/* ─────────────────────────────────────────────
+   KERNEL PRESETS
+───────────────────────────────────────────── */
+const PRESETS = {
+  vedge:    { label:'Vertical edge',   k:[[ 1, 0,-1],[ 1, 0,-1],[ 1, 0,-1]], desc:'Detects left-bright / right-dark vertical boundaries. Strong positive = left edge, negative = right edge, ~0 = flat region.' },
+  hedge:    { label:'Horizontal edge', k:[[ 1, 1, 1],[ 0, 0, 0],[-1,-1,-1]], desc:'Detects top-bright / bottom-dark horizontal boundaries.' },
+  blur:     { label:'Blur (box)',       k:[[ 1, 1, 1],[ 1, 1, 1],[ 1, 1, 1]], norm:9, desc:'Averages all 9 neighbours. Sum=9 (not zero) → smooths and brightens. Removes noise.' },
+  sharpen:  { label:'Sharpen',         k:[[ 0,-1, 0],[-1, 5,-1],[ 0,-1, 0]], desc:'Amplifies centre vs neighbours. Sum=1 → preserves brightness. Enhances edges and fine detail.' },
+  sobel:    { label:'Sobel X',         k:[[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]], desc:'Weighted vertical edge detector. More noise-resistant than simple difference — centre row gets 2× weight.' },
+  laplacian:{ label:'Laplacian',       k:[[ 0, 1, 0],[ 1,-4, 1],[ 0, 1, 0]], desc:'2nd-derivative edge detector. Detects ALL edge orientations at once. Strong response at any rapid intensity change.' },
+  emboss:   { label:'Emboss',          k:[[-2,-1, 0],[-1, 1, 1],[ 0, 1, 2]], desc:'Diagonal gradient — creates 3D relief. Responds to NW-dark / SE-bright diagonal intensity changes.' },
+};
+let activePreset = 'vedge';
+
+/* ─────────────────────────────────────────────
+   MULTI-FILTER PRESETS
+───────────────────────────────────────────── */
+const MULTI_FILTERS = [
+  { name:'Vertical edges',   color:var_('--blue'),   k:[[ 1, 0,-1],[ 1, 0,-1],[ 1, 0,-1]] },
+  { name:'Horizontal edges', color:var_('--teal'),   k:[[ 1, 1, 1],[ 0, 0, 0],[-1,-1,-1]] },
+  { name:'Laplacian (all)',   color:var_('--amber'),  k:[[ 0, 1, 0],[ 1,-4, 1],[ 0, 1, 0]] },
+  { name:'Sharpen / centre', color:var_('--purple'), k:[[ 0,-1, 0],[-1, 5,-1],[ 0,-1, 0]] },
+];
+function var_(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+/* ─────────────────────────────────────────────
+   MATH ENGINE
+───────────────────────────────────────────── */
+function convolve(inp, ker, stride, pad) {
+  const n = inp.length, f = ker.length;
+  const p = pad === 'same' ? Math.floor(f/2) : parseInt(pad)||0;
+  const outS = Math.floor((n - f + 2*p) / stride) + 1;
+  const padded = Array.from({length:n+2*p}, (_,r) =>
+    Array.from({length:n+2*p}, (_,c) => {
+      const rr=r-p, cc=c-p;
+      return (rr>=0&&rr<n&&cc>=0&&cc<n) ? inp[rr][cc] : 0;
+    })
+  );
+  const out = [];
+  for(let oi=0;oi<outS;oi++){ out.push([]);
+    for(let oj=0;oj<outS;oj++){
+      let s=0;
+      for(let ki=0;ki<f;ki++) for(let kj=0;kj<f;kj++) s+=padded[oi*stride+ki][oj*stride+kj]*ker[ki][kj];
+      out[oi].push(Math.round(s*10)/10);
+    }
+  }
+  return {out, outS};
+}
+function reluMat(m){ return m.map(r=>r.map(v=>Math.max(0,v))); }
+function maxpool2x2(m){
+  const n=m.length, r=[];
+  for(let i=0;i<n-1;i+=2){ r.push([]);
+    for(let j=0;j<m[0].length-1;j+=2)
+      r[r.length-1].push(Math.max(m[i][j],m[i][j+1],m[i+1][j],m[i+1][j+1]));
+  }
+  return r;
+}
+
+/* ─────────────────────────────────────────────
+   COLOUR HELPERS
+───────────────────────────────────────────── */
 function negPosColor(v){
   if(v===0) return {bg:'var(--bg2)',fg:'var(--text3)'};
-  if(v>0){
-    const t=Math.min(v/4,1);
-    return {bg:`rgb(${Math.round(93-t*64)},${Math.round(180-t*50)},${Math.round(130-t*60)})`,fg:'#fff'};
-  }
-  const t=Math.min(-v/4,1);
-  return {bg:`rgb(${Math.round(200+t*16)},${Math.round(120-t*90)},${Math.round(80-t*60)})`,fg:'#fff'};
+  if(v>0){ const t=Math.min(v/4,1); return {bg:`rgb(${Math.round(93-t*64)},${Math.round(180-t*50)},${Math.round(130-t*60)})`,fg:'#fff'}; }
+  const t=Math.min(-v/4,1); return {bg:`rgb(${Math.round(200+t*16)},${Math.round(120-t*90)},${Math.round(80-t*60)})`,fg:'#fff'};
 }
-
 function heatColor(v,mn,mx){
   if(mn===mx) return {bg:'var(--bg2)',fg:'var(--text)'};
   const t=(v-mn)/(mx-mn);
   const r=Math.round(55+t*170), g=Math.round(138+t*(90-138)), b=Math.round(221+t*(50-221));
-  const lum=0.299*r+0.587*g+0.114*b;
-  return {bg:`rgb(${r},${g},${b})`,fg:lum>140?'#1a1a2e':'#fff'};
+  return {bg:`rgb(${r},${g},${b})`,fg:(0.299*r+0.587*g+0.114*b)>140?'#1a1a2e':'#fff'};
 }
 
-/* ---- matrix renderers ---- */
-function matCell(val,cls,colorFn){
-  const {bg,fg}=colorFn(val);
-  const d=Number.isInteger(val)?val:val.toFixed(1);
-  return `<div class="cell ${cls}" style="background:${bg};color:${fg}">${d}</div>`;
-}
-
-function renderMatrix(mat,label,opts={}){
-  const {hlCells=[],resCells=[],winCells=[],maxCells=[],colorMode='heat',curOutCell=null}=opts;
+/* ─────────────────────────────────────────────
+   MATRIX RENDERERS
+───────────────────────────────────────────── */
+function renderMatrix(mat, label, opts={}){
+  const {hlCells=[],resCells=[],winCells=[],maxCells=[],colorMode='heat',curOutCell=null,animate=false}=opts;
   const flat=mat.flat(), mn=Math.min(...flat), mx=Math.max(...flat);
   const cols=mat[0].length;
   let h=`<div><div class="matrix-label">${label}</div>`;
   h+=`<div class="grid-matrix" style="grid-template-columns:repeat(${cols},34px);gap:2px">`;
   mat.forEach((row,ri)=>row.forEach((val,ci)=>{
-    const colorFn = colorMode==='negpos' ? negPosColor : (v=>heatColor(v,mn,mx));
+    const colorFn=colorMode==='negpos'?negPosColor:(v=>heatColor(v,mn,mx));
     const {bg,fg}=colorFn(val);
     const d=Number.isInteger(val)?val:val.toFixed(1);
     let cls='cell';
@@ -185,482 +289,11 @@ function renderMatrix(mat,label,opts={}){
     else if(maxCells.some(([r,c])=>r===ri&&c===ci)) cls='cell pool-max';
     else if(winCells.some(([r,c])=>r===ri&&c===ci)) cls='cell pool-win';
     if(curOutCell&&curOutCell[0]===ri&&curOutCell[1]===ci) cls='cell cur-out';
+    if(animate) cls+=' animate-in';
     h+=`<div class="${cls}" style="background:${bg};color:${fg}">${d}</div>`;
   }));
   h+=`</div></div>`;
   return h;
 }
-
 function renderPartialMatrix(partial,label,curR,curC,fullMat,colorMode='negpos'){
-  const flat=fullMat.flat(), mn=Math.min(...flat), mx=Math.max(...flat);
-  const cols=partial[0].length;
-  let h=`<div><div class="matrix-label">${label}</div>`;
-  h+=`<div class="grid-matrix" style="grid-template-columns:repeat(${cols},34px);gap:2px">`;
-  partial.forEach((row,ri)=>row.forEach((val,ci)=>{
-    if(val===null){
-      h+=`<div class="cell" style="background:var(--bg2);color:var(--text3)">?</div>`;
-    } else {
-      const colorFn = colorMode==='negpos' ? negPosColor : (v=>heatColor(v,mn,mx));
-      const {bg,fg}=colorFn(val);
-      const d=Number.isInteger(val)?val:val.toFixed(1);
-      const isCur=ri===curR&&ci===curC;
-      h+=`<div class="cell${isCur?' result-hl':''}" style="background:${bg};color:${fg}">${d}</div>`;
-    }
-  }));
-  h+=`</div></div>`;
-  return h;
-}
-
-function renderVector(arr,label){
-  const mn=Math.min(...arr),mx=Math.max(...arr);
-  let h=`<div><div class="matrix-label">${label}</div><div style="display:flex;gap:2px;flex-wrap:wrap">`;
-  arr.forEach(v=>{
-    const {bg,fg}=heatColor(v,mn,mx);
-    const d=Number.isInteger(v)?v:v.toFixed(2);
-    h+=`<div class="cell" style="background:${bg};color:${fg};width:46px;height:34px;font-size:11px">${d}</div>`;
-  });
-  h+=`</div></div>`;
-  return h;
-}
-
-/* ---- CONV animation ---- */
-let convPos=0, convTimer=null;
-const CONV_POS=[];
-for(let i=0;i<=INPUT.length-KERNEL.length;i++)
-  for(let j=0;j<=INPUT[0].length-KERNEL[0].length;j++)
-    CONV_POS.push([i,j]);
-
-function buildPartialConv(upTo){
-  const p=CONV.map(r=>r.map(()=>null));
-  for(let k=0;k<=upTo&&k<CONV_POS.length;k++){
-    const [r,c]=CONV_POS[k];
-    p[r][c]=CONV[r][c];
-  }
-  return p;
-}
-
-function renderConvStep(){
-  const [r,c]=CONV_POS[convPos];
-  const hlCells=[];
-  for(let ki=0;ki<3;ki++) for(let kj=0;kj<3;kj++) hlCells.push([r+ki,c+kj]);
-  const partial=buildPartialConv(convPos);
-  const val=CONV[r][c];
-
-  let terms=[], sum=0;
-  for(let ki=0;ki<3;ki++)
-    for(let kj=0;kj<3;kj++){
-      const pv=INPUT[r+ki][c+kj], kv=KERNEL[ki][kj];
-      terms.push({pv,kv,prod:pv*kv});
-      sum+=pv*kv;
-    }
-
-  let calc=`<span class="muted">Step ${convPos+1}/${CONV_POS.length} — position (${r}, ${c})</span>\n\noutput[${r}][${c}] =\n`;
-  for(let ki=0;ki<3;ki++){
-    const ts=terms.slice(ki*3,(ki+1)*3).map(({pv,kv})=>`(${pv}×${kv})`);
-    calc+=`  ${ts.join(' + ')}`;
-    if(ki<2) calc+=` +\n`;
-  }
-  const cls=sum>=0?'pos-val':'neg-val';
-  calc+=`\n  = <span class="${cls}">${sum}</span>`;
-  if(sum<0) calc+=`\n\n<span class="neg-val">negative → ReLU will zero this</span>`;
-  else if(sum===0) calc+=`\n\n<span class="muted">zero → ReLU keeps as 0</span>`;
-  else calc+=`\n\n<span class="pos-val">positive → ReLU will keep this</span>`;
-
-  document.getElementById('ci-input').innerHTML=renderMatrix(INPUT,'Input (6×6)',{hlCells,colorMode:'negpos'});
-  document.getElementById('ci-kernel').innerHTML=renderMatrix(KERNEL,'Kernel (3×3)',{colorMode:'negpos'});
-  document.getElementById('ci-feat').innerHTML=renderPartialMatrix(partial,'Feature map (4×4)',r,c,CONV,'negpos');
-  document.getElementById('ci-calc').innerHTML=calc;
-  document.getElementById('ci-pos').textContent=`Kernel at row=${r}, col=${c}`;
-  document.getElementById('conv-prev').disabled=convPos===0;
-  document.getElementById('conv-next').disabled=convPos===CONV_POS.length-1;
-}
-
-function convStep(d){stopConvAuto();convPos=Math.max(0,Math.min(CONV_POS.length-1,convPos+d));renderConvStep();}
-function convReset(){stopConvAuto();convPos=0;renderConvStep();}
-function toggleConvAuto(){if(convTimer)stopConvAuto();else startConvAuto();}
-function startConvAuto(){
-  if(convTimer)return;
-  const b=document.getElementById('conv-auto');
-  b.textContent='Pause'; b.classList.add('primary');
-  convTimer=setInterval(()=>{
-    if(convPos>=CONV_POS.length-1){stopConvAuto();return;}
-    convPos++; renderConvStep();
-  },600);
-}
-function stopConvAuto(){
-  if(convTimer){clearInterval(convTimer);convTimer=null;}
-  const b=document.getElementById('conv-auto');
-  if(b){b.textContent='Auto play';b.classList.remove('primary');}
-}
-
-/* ---- POOL animation ---- */
-let poolPos=0, poolTimer=null;
-const POOL_POS=[[0,0],[0,2],[2,0],[2,2]];
-
-function buildPartialPool(upTo){
-  const p=[[null,null],[null,null]];
-  for(let k=0;k<=upTo&&k<POOL_POS.length;k++){
-    const [r,c]=POOL_POS[k];
-    p[r/2][c/2]=POOL[r/2][c/2];
-  }
-  return p;
-}
-
-function findMaxCell(r,c){
-  let br=r,bc=c,bv=-Infinity;
-  for(let ki=0;ki<2;ki++) for(let kj=0;kj<2;kj++){
-    const v=RELU_O[r+ki][c+kj];
-    if(v>bv){bv=v;br=r+ki;bc=c+kj;}
-  }
-  return [br,bc,bv];
-}
-
-function renderPoolStep(){
-  const [r,c]=POOL_POS[poolPos];
-  const winCells=[], vals=[];
-  for(let ki=0;ki<2;ki++) for(let kj=0;kj<2;kj++){winCells.push([r+ki,c+kj]);vals.push(RELU_O[r+ki][c+kj]);}
-  const [mr,mc,mv]=findMaxCell(r,c);
-  const partial=buildPartialPool(poolPos);
-  const pr=r/2, pc=c/2;
-
-  let info=`<span class="muted">Window ${poolPos+1}/4 → pool[${pr}][${pc}]</span>\n\n`;
-  info+=`2×2 window at rows ${r}:${r+2}, cols ${c}:${c+2}:\n`;
-  info+=`  [ ${RELU_O[r][c]}, ${RELU_O[r][c+1]} ]\n`;
-  info+=`  [ ${RELU_O[r+1][c]}, ${RELU_O[r+1][c+1]} ]\n\n`;
-  info+=`max(${vals.join(', ')}) = <span class="pos-val">${mv}</span>\n`;
-  info+=`winner: relu_out[${mr}][${mc}] = ${RELU_O[mr][mc]}\n`;
-  info+=`discarded: ${vals.filter(v=>v!==mv).join(', ')} (${vals.filter(v=>v!==mv).length} values lost)`;
-
-  document.getElementById('pi-relu').innerHTML=renderMatrix(RELU_O,'After ReLU (4×4)',{winCells,maxCells:[[mr,mc]]});
-  document.getElementById('pi-pool').innerHTML=renderPartialMatrix(partial,'Pool output (2×2)',pr,pc,POOL,'heat');
-  document.getElementById('pi-info').innerHTML=info;
-  document.getElementById('pool-pos').textContent=`Window at row=${r}, col=${c}`;
-  document.getElementById('pool-prev').disabled=poolPos===0;
-  document.getElementById('pool-next').disabled=poolPos===POOL_POS.length-1;
-}
-
-function poolStep(d){stopPoolAuto();poolPos=Math.max(0,Math.min(POOL_POS.length-1,poolPos+d));renderPoolStep();}
-function poolReset(){stopPoolAuto();poolPos=0;renderPoolStep();}
-function togglePoolAuto(){if(poolTimer)stopPoolAuto();else startPoolAuto();}
-function startPoolAuto(){
-  if(poolTimer)return;
-  const b=document.getElementById('pool-auto');
-  b.textContent='Pause'; b.classList.add('primary');
-  poolTimer=setInterval(()=>{
-    if(poolPos>=POOL_POS.length-1){stopPoolAuto();return;}
-    poolPos++; renderPoolStep();
-  },1000);
-}
-function stopPoolAuto(){
-  if(poolTimer){clearInterval(poolTimer);poolTimer=null;}
-  const b=document.getElementById('pool-auto');
-  if(b){b.textContent='Auto play';b.classList.remove('primary');}
-}
-
-/* ---- STEPS ---- */
-const CLASS_NAMES=['cat','dog','bird','fish'];
-const BAR_COLORS=['#378ADD','#1D9E75','#BA7517','#D4537E'];
-const ARCH=['Input','Conv2D','ReLU','MaxPool','Flatten','FC Layer','Softmax','Summary'];
-let curStep=0;
-
-const STEPS=[
-  { label:'Input', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Step 1 — Input layer</div>
-      <div class="panel-sub">A 6×6 image with values in [−1, +1]. Negative values represent dark/inverted pixels. This range guarantees negatives after convolution.</div>
-      <div><span class="dim-badge">6 × 6 × 1</span><span class="tag">height × width × channels</span></div>
-      <div class="legend-row">
-        <span><span class="ldot" style="background:#5dcaa5"></span>positive</span>
-        <span><span class="ldot" style="background:#d85a30"></span>negative</span>
-        <span><span class="ldot" style="background:var(--bg2);border:0.5px solid var(--border)"></span>zero</span>
-      </div>
-      <div class="grid-wrap">${renderMatrix(INPUT,'Input (6×6)',{colorMode:'negpos'})}</div>
-      <div class="math-box">Shape: (6, 6, 1)  →  36 values total
-Normalised range: [−1, +1]
-  e.g. raw_pixel / 128 − 1  (for uint8 images)
-
-The kernel we use is a vertical-edge detector:
-  [ 1,  0, −1]    Left column amplifies bright-left
-  [ 1,  0, −1]    Middle column ignored (weight=0)
-  [ 1,  0, −1]    Right column penalises bright-right
-
-  Positive output  →  left side brighter than right (left edge)
-  Negative output  →  right side brighter than left (right edge)
-  Near zero        →  uniform region, no edge present</div>
-      <div class="takeaway">Key: Real CNN inputs are always normalised. Using [−1,+1] here (rather than [0,1]) means the kernel can produce both positive and negative dot products — making ReLU's effect visually meaningful in the next steps.</div>
-    </div>` },
-
-  { label:'Conv2D', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Step 2 — Convolutional layer (Conv2D)</div>
-      <div class="panel-sub">The 3×3 kernel slides over all 16 valid positions. Watch negatives appear — they mean "reverse edge detected".</div>
-      <div><span class="dim-badge">6×6 → 4×4</span><span class="tag">(6−3)/1+1 = 4</span><span class="tag">Stride=1, Padding=valid</span></div>
-      <div class="legend-row">
-        <span><span class="lring" style="color:var(--blue)"></span>input patch</span>
-        <span><span class="lring" style="color:var(--teal)"></span>output being written</span>
-        <span><span class="ldot" style="background:#5dcaa5"></span>positive result</span>
-        <span><span class="ldot" style="background:#d85a30"></span>negative result</span>
-      </div>
-      <div class="ctrl-row">
-        <button class="ctrl-btn" id="conv-prev" onclick="convStep(-1)">&#8592; Prev</button>
-        <button class="ctrl-btn" id="conv-auto" onclick="toggleConvAuto()">Auto play</button>
-        <button class="ctrl-btn" id="conv-next" onclick="convStep(1)">Next &#8594;</button>
-        <button class="ctrl-btn" onclick="convReset()">Reset</button>
-        <span id="ci-pos" style="font-size:12px;color:var(--text2);font-family:monospace"></span>
-      </div>
-      <div class="anim-layout">
-        <div id="ci-input"></div>
-        <div class="op-sym" style="align-self:center">&#8857;</div>
-        <div id="ci-kernel"></div>
-        <div class="op-sym" style="align-self:center">=</div>
-        <div id="ci-feat"></div>
-        <div style="flex:1;min-width:230px">
-          <div class="matrix-label">Calculation</div>
-          <div class="calc-box" id="ci-calc"></div>
-        </div>
-      </div>
-      <div class="math-box">Formula: output[i][j] = Σₘ Σₙ input[i+m][j+n] × kernel[m][n]
-
-Full 4×4 output (verified):
-  row 0: [−1,  4,  4, −1]
-  row 1: [−2,  2,  4,  1]
-  row 2: [−3, −2,  2,  3]
-  row 3: [ 0, −3, −2,  1]
-
-Negatives: 7 out of 16 values  (44%)
-  → these are "reverse-edge" responses</div>
-      <div class="takeaway">Key: Negative values mean the kernel fired in the opposite direction — a right-brighter-than-left edge when the kernel looks for left-brighter-than-right. These are valid responses and encode real information. ReLU in the next step decides whether to keep them.</div>
-    </div>` },
-
-  { label:'ReLU', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Step 3 — ReLU activation</div>
-      <div class="panel-sub">max(0, x) — all 7 negatives become zero, all 9 positives survive unchanged</div>
-      <div><span class="dim-badge">4×4 → 4×4</span><span class="tag">shape unchanged</span><span class="tag">7 values zeroed</span></div>
-      <div class="legend-row">
-        <span><span class="ldot" style="background:#5dcaa5"></span>kept (positive)</span>
-        <span><span class="ldot" style="background:var(--bg2);border:0.5px solid var(--border)"></span>zeroed (was negative)</span>
-      </div>
-      <div class="grid-wrap">
-        ${renderMatrix(CONV,'After Conv (4×4)',{colorMode:'negpos'})}
-        <div class="op-sym">&#8594;</div>
-        ${renderMatrix(RELU_O,'After ReLU (4×4)',{colorMode:'heat'})}
-      </div>
-      <div class="math-box">ReLU(x) = max(0, x)
-
-Before → After (cell by cell):
-  row 0:  [−1, 4, 4,−1]  →  [0, 4, 4, 0]   (2 zeroed)
-  row 1:  [−2, 2, 4, 1]  →  [0, 2, 4, 1]   (1 zeroed)
-  row 2:  [−3,−2, 2, 3]  →  [0, 0, 2, 3]   (2 zeroed)
-  row 3:  [ 0,−3,−2, 1]  →  [0, 0, 0, 1]   (2 zeroed)
-
-Values zeroed: 7 / 16  (44%)
-Values kept:   9 / 16  (56%)
-Maximum value: 4 (unchanged)
-
-Gradient of ReLU:
-  dReLU/dx = 1  if x > 0
-  dReLU/dx = 0  if x ≤ 0  (dead — no gradient flows back)</div>
-      <div class="takeaway">Key: 44% of the feature map is zeroed here — this is normal and desirable. Sparsity speeds up computation and prevents overfitting. The "dead gradient" at zero is why LeakyReLU (slope=0.01 for negatives) was invented: it keeps a tiny gradient flowing even through zeroed neurons.</div>
-    </div>` },
-
-  { label:'MaxPool', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Step 4 — Max pooling (2×2, stride 2)</div>
-      <div class="panel-sub">4 non-overlapping windows cover the 4×4 map → each contributes one value to the 2×2 output</div>
-      <div><span class="dim-badge">4×4 → 2×2</span><span class="tag">(4−2)/2+1 = 2</span><span class="tag">4 windows</span><span class="tag">75% compression</span></div>
-      <div class="legend-row">
-        <span><span class="lring" style="color:var(--blue)"></span>current window</span>
-        <span><span class="lring" style="color:var(--coral)"></span>max cell (kept)</span>
-      </div>
-      <div class="ctrl-row">
-        <button class="ctrl-btn" id="pool-prev" onclick="poolStep(-1)">&#8592; Prev</button>
-        <button class="ctrl-btn" id="pool-auto" onclick="togglePoolAuto()">Auto play</button>
-        <button class="ctrl-btn" id="pool-next" onclick="poolStep(1)">Next &#8594;</button>
-        <button class="ctrl-btn" onclick="poolReset()">Reset</button>
-        <span id="pool-pos" style="font-size:12px;color:var(--text2);font-family:monospace"></span>
-      </div>
-      <div class="anim-layout">
-        <div id="pi-relu"></div>
-        <div class="op-sym" style="align-self:center">&#8594;</div>
-        <div id="pi-pool"></div>
-        <div style="flex:1;min-width:230px">
-          <div class="matrix-label">Window detail</div>
-          <div class="calc-box" id="pi-info"></div>
-        </div>
-      </div>
-      <div class="math-box">All 4 windows and their results:
-
-  Window 1  rows 0:2, cols 0:2  →  pool[0][0]
-    [[0, 4], [0, 2]]  max = 4
-
-  Window 2  rows 0:2, cols 2:4  →  pool[0][1]
-    [[4, 0], [4, 1]]  max = 4
-
-  Window 3  rows 2:4, cols 0:2  →  pool[1][0]
-    [[0, 0], [0, 0]]  max = 0
-
-  Window 4  rows 2:4, cols 2:4  →  pool[1][1]
-    [[2, 3], [0, 1]]  max = 3
-
-Final 2×2 pool output:
-  [[4, 4],
-   [0, 3]]
-
-16 values compressed to 4  (75% reduction, 0 params)</div>
-      <div class="takeaway">Key: Window 3 outputs 0 — the entire bottom-left quadrant had no positive activations after ReLU. This is real information: "no vertical left-edge detected in that region". MaxPool preserves the strongest signal per region, giving the network tolerance to small positional shifts.</div>
-    </div>` },
-
-  { label:'Flatten', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Step 5 — Flatten</div>
-      <div class="panel-sub">Reshape the 2×2 feature map into a 1D vector. No math — just a change of shape.</div>
-      <div><span class="dim-badge">(2×2) → [4]</span><span class="tag">0 parameters</span></div>
-      <div class="grid-wrap">
-        ${renderMatrix(POOL,'MaxPool output (2×2)',{})}
-        <div class="op-sym">&#8594;</div>
-        ${renderVector(FLAT,'Flattened [4]')}
-      </div>
-      <div class="math-box">Shape: (2, 2, 1)  →  (4,)
-
-Reading order: row-major (left→right, top→bottom)
-  pool[0][0] = ${POOL[0][0]}
-  pool[0][1] = ${POOL[0][1]}
-  pool[1][0] = ${POOL[1][0]}   ← entire bottom-left region had no activation
-  pool[1][1] = ${POOL[1][1]}
-
-Result vector: [${FLAT.join(', ')}]
-
-In a realistic net (32 filters, 7×7 pool after 3 conv blocks):
-  Flat size = 32 × 7 × 7 = 1,568 values</div>
-      <div class="takeaway">Key: The zero at index 2 carries information — it tells the FC layer "no edge was detected in the bottom-left". The FC layer learns to interpret the entire pattern [4, 4, 0, 3] as evidence for or against each class.</div>
-    </div>` },
-
-  { label:'FC Layer', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Step 6 — Fully connected (dense) layer</div>
-      <div class="panel-sub">Every feature connects to every class neuron via learned weights + bias</div>
-      <div><span class="dim-badge">[4] → [4]</span><span class="tag">weights: 4×4=16</span><span class="tag">+4 biases = 20 params</span></div>
-      <div class="grid-wrap">
-        ${renderVector(FLAT,'Input [4]')}
-        <div class="op-sym">×W+b</div>
-        ${renderVector(FC_OUT,'Logits [4]')}
-      </div>
-      <div class="math-box">y = W · x + b
-
-W (4×4):
-  cat:  [${FC_W[0].join(', ')}]
-  dog:  [${FC_W[1].join(', ')}]
-  bird: [${FC_W[2].join(', ')}]
-  fish: [${FC_W[3].join(', ')}]
-
-x (input): [${FLAT.join(', ')}]
-
-y[cat]  = (${FLAT.map((v,i)=>`${v}×${FC_W[0][i]}`).join('+')})+${FC_B[0]} = ${FC_OUT[0]}
-y[dog]  = (${FLAT.map((v,i)=>`${v}×${FC_W[1][i]}`).join('+')})+${FC_B[1]} = ${FC_OUT[1]}
-y[bird] = (${FLAT.map((v,i)=>`${v}×${FC_W[2][i]}`).join('+')})+${FC_B[2]} = ${FC_OUT[2]}
-y[fish] = (${FLAT.map((v,i)=>`${v}×${FC_W[3][i]}`).join('+')})+${FC_B[3]} = ${FC_OUT[3]}</div>
-      <div class="takeaway">Key: These raw numbers (logits) have no probability meaning yet — a logit of 2.0 doesn't mean "2% confident". Softmax converts them into a proper distribution. Notice how the zero in the flat vector (pool[1][0]=0) reduces contributions from the negative weights in that column.</div>
-    </div>` },
-
-  { label:'Softmax', render:()=>{
-      const winner=CLASS_NAMES[SOFT.indexOf(Math.max(...SOFT))];
-      const bars=CLASS_NAMES.map((cls,i)=>{
-        const pct=(SOFT[i]*100).toFixed(1);
-        return `<div class="bar-row">
-          <div class="bar-label">${cls}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${BAR_COLORS[i]}">${pct}%</div></div>
-          <div class="bar-pct">${SOFT[i].toFixed(3)}</div>
-        </div>`;
-      }).join('');
-      return `
-    <div class="panel">
-      <div class="panel-title">Step 7 — Softmax output</div>
-      <div class="panel-sub">Convert logits to probabilities. All values positive, sum = 1.0.</div>
-      <div><span class="dim-badge">[4] logits → [4] probs</span><span class="tag">Prediction: ${winner}</span><span class="tag">Σ = 1.0</span></div>
-      <div style="margin:14px 0">${bars}</div>
-      <div class="math-box">softmax(zᵢ) = e^(zᵢ − max(z)) / Σⱼ e^(zⱼ − max(z))
-
-Logits z:      [${FC_OUT.join(', ')}]
-max(z):         ${Math.max(...FC_OUT)}
-z − max(z):    [${FC_OUT.map(v=>(v-Math.max(...FC_OUT)).toFixed(3)).join(', ')}]
-e^(z−max):     [${FC_OUT.map(v=>Math.exp(v-Math.max(...FC_OUT)).toFixed(4)).join(', ')}]
-Σ e^(z−max):   ${FC_OUT.map(v=>Math.exp(v-Math.max(...FC_OUT))).reduce((a,b)=>a+b,0).toFixed(4)}
-Probabilities: [${SOFT.join(', ')}]
-Sum check:     ${SOFT.reduce((a,b)=>a+b,0).toFixed(4)} ✓
-
-Prediction:    ${winner.toUpperCase()}  (${(Math.max(...SOFT)*100).toFixed(1)}% confidence)
-
-Cross-entropy loss (if true label = cat, y=[1,0,0,0]):
-  L = −log(p̂_cat) = −log(${SOFT[0]}) = ${(-Math.log(SOFT[0])).toFixed(4)}
-
-Gradient w.r.t. logits:  ∂L/∂z = p̂ − y
-  = [${SOFT.map((v,i)=>(v-(i===0?1:0)).toFixed(4)).join(', ')}]</div>
-      <div class="takeaway">Key: The gradient ∂L/∂z = p̂ − y is elegantly simple — just predicted minus true. This flows back through FC (via chain rule), then through flatten (pass-through), then through pool (routes to the max cell's position), then through ReLU (only where activation was positive), then through conv (updating each kernel weight). That's backpropagation.</div>
-    </div>`;
-  }},
-
-  { label:'Summary', render:()=>`
-    <div class="panel">
-      <div class="panel-title">Full pipeline — dimensions and parameter count</div>
-      <div class="panel-sub">Every layer, shape, and parameter in one view</div>
-      <table class="sum-table">
-        <thead><tr><th>Layer</th><th>Input shape</th><th>Output shape</th><th>Params</th><th>Key fact</th></tr></thead>
-        <tbody>
-          <tr><td>Input</td><td>(6,6,1)</td><td>(6,6,1)</td><td>0</td><td>Normalised to [−1,+1]</td></tr>
-          <tr><td>Conv2D (3×3, 1 filter)</td><td>(6,6,1)</td><td>(4,4,1)</td><td>9+1=10</td><td>7/16 values negative</td></tr>
-          <tr><td>ReLU</td><td>(4,4,1)</td><td>(4,4,1)</td><td>0</td><td>7/16 zeroed (44%)</td></tr>
-          <tr><td>MaxPool (2×2, s=2)</td><td>(4,4,1)</td><td>(2,2,1)</td><td>0</td><td>75% spatial compression</td></tr>
-          <tr><td>Flatten</td><td>(2,2,1)</td><td>(4,)</td><td>0</td><td>Spatial info gone</td></tr>
-          <tr><td>Dense (4 units)</td><td>(4,)</td><td>(4,)</td><td>16+4=20</td><td>All features → all classes</td></tr>
-          <tr><td>Softmax</td><td>(4,)</td><td>(4,)</td><td>0</td><td>Σ probs = 1.0</td></tr>
-          <tr class="total-row"><td colspan="3">Total trainable parameters</td><td>30</td><td></td></tr>
-        </tbody>
-      </table>
-      <div class="math-box">Conv output size  = (N − F + 2P) / S + 1
-  (6 − 3 + 0) / 1 + 1 = 4  →  4×4
-
-Pool output size  = (N − pool) / stride + 1
-  (4 − 2) / 2 + 1 = 2  →  2×2
-
-Key numbers in this simulation:
-  Conv negatives:  7 / 16 (44%)  — meaningful signal
-  ReLU zeros:      8 / 16 (50%)  — includes conv zeros
-  Pool compression: 16 → 4  (75% reduction)
-  FC parameters:  20 / 30 total  (67% of all params)
-
-Real scale — ResNet-50:
-  Input 224×224×3  →  49 conv layers
-  BatchNorm + ReLU after each conv
-  GlobalAvgPool (no FC!) → FC(1000)
-  Total: ~25.6 million parameters</div>
-      <div class="takeaway">Big picture: Conv layers extract features (edges → textures → shapes → objects), ReLU introduces non-linearity and sparsity, Pool compresses spatial dimensions and builds translation tolerance, FC classifies the extracted feature vector. Training = forward pass → cross-entropy loss → backprop → SGD/Adam weight update → repeat.</div>
-    </div>` }
-];
-
-function renderArch(){
-  document.getElementById('arch-display').innerHTML=ARCH.map((a,i)=>
-    `<span class="arch-box${i===curStep?' active':''}" onclick="goStep(${i})">${a}</span>${i<ARCH.length-1?'<span class="arch-arrow">›</span>':''}`
-  ).join('');
-}
-
-function renderStep(){
-  stopConvAuto(); stopPoolAuto();
-  convPos=0; poolPos=0;
-  document.getElementById('step-content').innerHTML=STEPS[curStep].render();
-  renderArch();
-  document.getElementById('prog').style.width=`${((curStep+1)/STEPS.length)*100}%`;
-  document.getElementById('prev-btn').disabled=curStep===0;
-  document.getElementById('next-btn').disabled=curStep===STEPS.length-1;
-  document.getElementById('step-counter').textContent=`${curStep+1} / ${STEPS.length}`;
-  if(curStep===1) setTimeout(renderConvStep,50);
-  if(curStep===3) setTimeout(renderPoolStep,50);
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function goStep(i){curStep=i;renderStep();}
-function changeStep(d){curStep=Math.max(0,Math.min(STEPS.length-1,curStep+d));renderStep();}
-renderStep();
-</script>
-</body>
-</html>
+  const flat=fullMat.flat(),mn=Math.min(...flat
